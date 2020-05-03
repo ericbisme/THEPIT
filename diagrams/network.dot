@@ -1,0 +1,106 @@
+digraph architecture {
+  rankdir=LR;
+  ranksep = "1 equally"
+  compound=true;
+  colorscheme=x11;
+  label="THEPIT Network";
+
+  subgraph cluster_wan1 {
+    label="Primary WAN\nXFinity"
+    node [shape=box];
+    {cable_modem};
+  }
+
+  subgraph cluster_wan2 {
+    label="Secondary WAN\nxfinitywifi or 4G LTE"
+    node [shape=box];
+    {loco_m5, netgear_4g};
+  }
+
+  subgraph cluster_wireless_infra {
+    label="Wireless\nInfrastructure"
+    node [shape=box];
+    Chromecast_Audio_1 [label="Chromecast Audio\nWorkshop"];
+    Chromecast_Audio_2 [label="Chromecast Audio\nLiving Room"];
+    Chromecast_Audio_3 [label="Chromecast Audio\nOffice"];
+    Chromecast_Audio_4 [label="Chromecast Audio\nMobile Speaker"];
+    nestcam_1 [label="Nest Camera\nFront Yard"];
+    nestcam_2 [label="Nest Camera\nLiving Room"];
+    nest_thermostat [label="Nest Thermostat\nHallway"];
+    google_home_hub_1 [label="Google Home Hub\nKitchen"];
+    google_home_mini_1 [label="Google Home Mini\nOffice"];
+    google_home_mini_2 [label="Google Home Mini\nLiving Room"];
+    rainbird [label="Rainbird\nIrrigation Controller"];
+    
+  }
+
+  subgraph cluster_kubernetes{
+    label="Kubernetes"
+    fillcolor=cornflowerblue
+    style=filled
+    node [shape=septagon];
+    k8s_node1;
+    k8s_node2;
+  }
+
+  subgraph cluster_k8s_services{
+    label="Kubernetes\nServices"
+    fillcolor=cornflowerblue
+    style=filled
+    node [shape=septagon];
+    Alertmanager;
+    Calibre;
+    Grafana;
+    Linkerd;
+    Mosquitto;
+    Pihole;
+    Plex;
+    Prometheus;
+    Traefik;
+  }
+
+  cable_modem [label="Motorola\nMB8600"]
+  loco_m5 [label="Ubiquiti\nLoco M5"]
+  netgear_4g [label="Netgear\nLB1121"]
+
+  lm_gw [label="Liftmaster\nGateway"]
+  cloudkey [label="Cloudkey", fillcolor=azure3, style=filled]
+
+  workstation_1 [label="Workstation\nPersonal"]
+  workstation_2 [label="Workstation\nWork"]
+
+  usg_pro4 [fillcolor=azure3, style=filled, shape=Mrecord, label="USG PRO4|<lan1>lan1|<lan2>lan2|<wan1>wan1|<wan2>wan2"]
+  usw_16_150w [fillcolor=azure3, style=filled shape=Mrecord, label="USW 16 150W|<sfp1>sfp1|<sfp2>sfp2|<1>1|<2>2|<3>3|<4>4|<5>5|<6>6|<7>7|<8>8|<9>9|<10>10|<11>11|<12>12|<13>13|<14>14|<15>15|<16>16"]
+  uswfm1 [fillcolor=azure3, style=filled, shape=Mrecord, label="USW Flex Mini\nOffice|<1>1|<2>2|<3>3|<4>4|<5>5"]
+  uswfm2 [fillcolor=azure3, style=filled, shape=Mrecord, label="USW Flex Mini\nLiving Room|<1>1|<2>2|<3>3|<4>4|<5>5"]
+  uswfm3 [fillcolor=azure3, style=filled, shape=Mrecord, label="USW Flex Mini\nBasement|<1>1|<2>2|<3>3|<4>4|<5>5"]
+  uapaclr [fillcolor=azure3, style=filled, shape=Mrecord, label="UAP AC LR\nMain Floor|<1>THEPIT|<2>THEPIT-GUEST|<3>THEPIT-IOT"]
+
+  cable_modem    -> usg_pro4:wan1 [dir=none]
+  loco_m5        -> usg_pro4:wan2 [dir=none]
+
+  usg_pro4:lan1  -> usw_16_150w:sfp1 [dir=none]
+  Chromecast_Audio_1  -> usw_16_150w:10 [dir=none, color="transparent", ltail=cluster_wireless_infra]
+
+  usw_16_150w:1  -> cloudkey      [dir=none]
+  usw_16_150w:2  -> printer       [dir=none]
+  usw_16_150w:3  -> k8s_node1     [dir=none]
+  usw_16_150w:4  -> k8s_node2     [dir=none]
+  usw_16_150w:5  -> uswfm3:1      [dir=none]
+  usw_16_150w:6  -> uswfm2:1      [dir=none color="brown"]
+  usw_16_150w:7  -> uswfm1:1      [dir=none color="orange"]
+  usw_16_150w:8  -> lm_gw         [dir=none color="blue"]
+  usw_16_150w:10 -> uapaclr:1     [dir=none color="forestgreen"];
+
+  k8s_node1 -> Plex [dir=none,ltail=cluster_kubernetes,lhead=cluster_k8s_services];
+
+  uswfm1:2 -> workstation_1
+  uswfm1:3 -> workstation_2
+
+  uswfm2:2 -> TV
+  uswfm2:3 -> chromecast
+  uswfm2:4 -> receiver
+
+  uswfm3:2 -> FireTV
+  uswfm3:3 -> Chromecast
+}

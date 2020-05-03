@@ -1,0 +1,59 @@
+digraph dns {
+  rankdir=LR;
+  compound=true;
+  colorscheme=x11;
+  label="THEPIT DNS";
+
+  subgraph cluster_pihole_pod {
+    label="Pi-hole K8s Pod"
+    node [shape=box style=rounded];
+    cloudflared [label="cloudflared container" fillcolor=forestgreen style="rounded,filled"];
+
+    subgraph cluster_pihole_app {
+      label="Pi-hole Container";
+      pihole [label="Pi-hole" fillcolor=forestgreen style="rounded,filled"];
+      blacklists;
+    }
+
+    pihole -> blacklists [dir="both"];
+    pihole -> cloudflared [dir="both"];
+  }
+
+  subgraph cluster_usg {
+    label="USG"
+    node [shape=box style=rounded];
+    dnsmasq [label="DNSMasq\nDHCP and DNS" fillcolor=forestgreen style="rounded,filled"];
+    leases  [label="Local Host Names\n/run/dnsmasq-dhcp.leases"];
+    hosts   [label="Local K8s Services\n/etc/hosts"];
+    conf    [label="Non-local Queries\ndnsmasq.conf" fillcolor=forestgreen style="rounded,filled"];
+
+    dnsmasq -> {leases,hosts,conf} [dir=both];
+  }
+
+  subgraph consumers {
+    node [shape=box style=rounded];
+    {rank="same"; k8s_nodes; clients; k8s_pods; usg}
+    k8s_nodes  [label="K8s Nodes" shape=septagon fillcolor=cornflowerblue style="rounded,filled"]
+    k8s_pods   [label="K8s Pods"]
+    clients    [label="DHCP clients"]
+    usg        [label="USG" shape="box" style="rounded"]
+  }
+
+  cloudflare [label="1.1.1.1" shape="egg" fillcolor=forestgreen style=filled]
+  coredns    [label="CoreDNS" shape="box" style="rounded"]
+
+  k8s_pods -> coredns;
+  coredns -> dnsmasq;
+
+  clients -> dnsmasq [dir="both"];
+  
+  k8s_nodes -> {dnsmasq} [label="primary"];
+  k8s_nodes -> {cloudflare} [label="secondary"];
+  
+  usg -> {dnsmasq} [label="primary"];
+  usg -> {cloudflare} [label="secondary"];
+
+  conf -> pihole [dir="both"];
+
+  cloudflared -> cloudflare [label="HTTPS" dir="both"]
+}
