@@ -22,7 +22,7 @@ digraph dns {
   subgraph cluster_usg {
     label="USG"
     node [shape=box style=rounded];
-    dnsmasq [label="DNSMasq\nDHCP and DNS" fillcolor=forestgreen style="rounded,filled"];
+    dnsmasq [label="Dnsmasq\nDHCP and DNS" fillcolor=forestgreen style="rounded,filled"];
     leases  [label="Local Host Names\n/run/dnsmasq-dhcp.leases"];
     hosts   [label="Local K8s Services\n/etc/hosts"];
     conf    [label="Non-local Queries\ndnsmasq.conf" fillcolor=forestgreen style="rounded,filled"];
