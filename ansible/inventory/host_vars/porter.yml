@@ -1,0 +1,21 @@
+---
+
+ansible_connection: local
+
+nut_host: localhost
+nut_max_retry: 3
+nut_mode: netserver
+nut_remove_shutdown_script: true
+
+nut_ups_devices:
+  - |
+    [cyberpower]
+      driver = "usbhid-ups"
+      port = "auto"
+      vendorid = "0764"
+      productid = "0501"
+      product = "CP1500PFCLCD"
+      serial = "000000000000"
+      vendor = "CPS"
+      bus = "001"
+      desc = "CyberPower on Porter"

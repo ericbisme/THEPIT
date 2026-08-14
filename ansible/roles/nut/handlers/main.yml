@@ -1,0 +1,16 @@
+---
+
+- name: Restart NUT
+  service:
+    name: "{{ item }}"
+    state: restarted
+    enabled: yes
+  with_items:
+    - nut-driver
+    - nut-monitor
+    - nut-server
+  become: true
+
+- name: Reload udev rules
+  command: 'udevadm control --reload-rules && udevadm trigger'
+  become: true

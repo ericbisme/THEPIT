@@ -1,0 +1,9 @@
+---
+
+- name: Deploy config.gateway.json to Cloud Key
+  copy:
+    content: "{{ lookup('template', 'templates/config-gateway-json.j2') }}"
+    dest: /usr/lib/unifi/data/sites/default/config.gateway.json
+  tags:
+    - config-gateway-json
+  notify:  "Reprovision USG"

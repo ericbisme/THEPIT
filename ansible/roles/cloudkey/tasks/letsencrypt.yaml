@@ -1,0 +1,122 @@
+---
+
+# Fixes for old Debian version
+# https://www.lucas-nussbaum.net/blog/?p=947
+#- name: Disable check valid until for Apt Packages
+#  lineinfile:
+#    path: '/etc/apt/apt.conf.d/99no-check-valid-until'
+#    line: 'Acquire::Check-Valid-Until no;'
+#    create: yes
+#  tags:
+#    - letsencrypt-setup
+#    - letsencrypt
+#
+#- name: Enable archived jessie-backports source
+#  lineinfile:
+#    path: '/etc/apt/sources.list.d/jessie-backports-archive.list'
+#    line: 'deb http://archive.debian.org/debian/ jessie-backports main contrib non-free'
+#    create: yes
+#  tags:
+#    - letsencrypt-setup
+#    - letsencrypt
+
+- name: Install SSL dependencies and certbot
+  apt:
+    pkg:
+    - build-essential
+    - libssl-dev
+    - libffi-dev
+    - python-dev
+    - certbot
+    - python3-certbot-dns-route53
+    update_cache: yes
+  tags:
+    - letsencrypt-setup
+    - letsencrypt
+
+- name: Install Certbot
+  apt:
+    name: python-certbot-apache
+    update_cache: yes
+  tags:
+    - letsencrypt-setup
+    - letsencrypt
+
+# Requirements for using pyOpenSSL for creating keystore
+- name: Install python3-pip
+  apt:
+    name: python3-pip
+    update_cache: yes
+  tags:
+    - letsencrypt-setup
+    - letsencrypt
+
+- name: Install pyOpenSSL using pip
+  pip:
+    name: pyOpenSSL
+  tags:
+    - letsencrypt-setup
+    - letsencrypt
+
+- name: Install virtualenv using pip
+  pip:
+    name: virtualenv
+  tags:
+    - letsencrypt-setup
+    - letsencrypt
+
+# Requirements for Let's Encrypt
+#- name: Download certbot-auto
+#  get_url:
+#    url: https://dl.eff.org/certbot-auto
+#    dest: /usr/local/bin/certbot-auto
+#    mode: '0755'
+#  tags:
+#    - letsencrypt-setup
+#    - letsencrypt
+#
+#- name: Install certbot
+#  command:
+#    cmd: /usr/local/bin/certbot-auto --non-interactive --install-only
+#  register: command_result
+#  changed_when: command_result.stdout is not search("Certbot is installed.")
+#  tags:
+#    - letsencrypt-setup
+#    - letsencrypt
+
+#- name: Install DNS Route53 plugin to certbot-auto
+#  pip:
+#    name: certbot-dns-route53
+#    virtualenv: /opt/eff.org/certbot/venv/
+#  tags:
+#    - letsencrypt-setup
+#    - letsencrypt
+
+- name: Request Let's Encrypt Certificate
+  command:
+    cmd: "{{ certbot_cmd }}"
+  register: command_result
+  changed_when: command_result.stdout is not search("Certificate not yet due for renewal; no action taken.")
+  tags:
+    - letsencrypt
+
+# Replace The default Unifi Keystore, keeping the default password and certificate
+# alias in place. This works as a drop in replacement
+- name: Generate PKCS12 file in place of default Unifi keystore
+  openssl_pkcs12:
+    action: export
+    path: '/etc/ssl/private/unifi.keystore.jks'
+    owner: 'unifi'
+    group: 'ssl-cert'
+    mode: '0440'
+    backup: yes
+    passphrase: "{{ unifi_keystore_passphrase }}"
+    friendly_name: 'unifi'
+    privatekey_path: "/etc/letsencrypt/live/{{ unifi_fqdn }}/privkey.pem"
+    certificate_path: "/etc/letsencrypt/live/{{ unifi_fqdn }}/cert.pem"
+    other_certificates: "/etc/letsencrypt/live/{{ unifi_fqdn }}/chain.pem"
+    state: present
+  tags:
+    - letsencrypt
+  notify:
+    - "Restart Unifi"

@@ -1,0 +1,78 @@
+{
+  "system": {
+    "name-server":
+      {{ name_server | to_nice_json }},
+
+    "static-host-mapping": {
+      "host-name":
+        {{ host_mappings | to_nice_json }}
+    }
+  },
+
+  "service": {
+    "dns": {
+      "forwarding": {
+        "options":
+          {{ dns_forwarding_options | to_nice_json}}
+      }
+    }
+  },
+
+  "load-balance": {
+    "group": {
+      "wan_failover": {
+        "interface": {
+          "eth2": {
+            "route-test": {
+              "type": {
+                "ping": {
+                  "target": "1.1.1.1"
+                }
+              }
+            }
+          },
+          "eth3": {
+            "route-test": {
+              "type": {
+                "ping": {
+                  "target": "75.75.75.75"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "protocols": {
+    "bgp": {
+      "64501": {
+        "neighbor": {
+          "192.168.10.126": {
+            "remote-as": "64500"
+          },
+          "192.168.10.127": {
+            "remote-as": "64500"
+          }
+        },
+        "parameters": {
+          "router-id": "192.168.10.1"
+        }
+      }
+    }
+  },
+
+  "firewall": {
+    "group": {
+      "network-group": {
+        "remote_user_vpn_network": {
+          "description": "Remote User VPN subnets",
+          "network": [
+            "192.168.40.0/24"
+          ]
+        }
+      }
+    }
+  },
+}

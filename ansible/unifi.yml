@@ -1,0 +1,12 @@
+---
+- name: Refuse to run retired Cloud Key automation
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Explain the quarantine
+      ansible.builtin.fail:
+        msg: >-
+          This playbook targeted the retired UniFi Cloud Key and is quarantined. The current
+          controller must be inventoried and modeled separately before controller provisioning is
+          reintroduced.

@@ -1,0 +1,19 @@
+# Local credentials and environment
+.env
+.env.*
+*.env
+*vault-password*
+*.pem
+*.p12
+*.pfx
+
+# Ansible runtime artifacts
+*.retry
+.ansible/
+facts/
+build/
+
+# Editor and OS artifacts
+*~
+*.swp
+.DS_Store

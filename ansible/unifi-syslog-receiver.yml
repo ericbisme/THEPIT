@@ -1,0 +1,78 @@
+---
+- name: Configure Porter as a LAN-only UniFi syslog receiver
+  hosts: porter
+  become: true
+
+  vars:
+    unifi_syslog_sources:
+      - 192.168.2.2/32
+      - 192.168.1.1/32
+      - 192.168.1.53/32
+      - 192.168.1.88/32
+      - 192.168.1.89/32
+      - 192.168.1.93/32
+      - 192.168.1.94/32
+      - 192.168.1.128/32
+      - 192.168.1.129/32
+      - 192.168.1.130/32
+      - 192.168.10.41/32
+
+  tasks:
+    - name: Install rsyslog
+      ansible.builtin.dnf:
+        name: rsyslog
+        state: present
+
+    - name: Install UniFi receiver configuration
+      ansible.builtin.copy:
+        src: files/rsyslog-unifi-receiver.conf
+        dest: /etc/rsyslog.d/30-unifi-receiver.conf
+        owner: root
+        group: root
+        mode: "0644"
+        validate: /usr/sbin/rsyslogd -N1 -f %s
+      notify: Restart rsyslog
+
+    - name: Install UniFi log rotation policy
+      ansible.builtin.copy:
+        src: files/logrotate-unifi-syslog
+        dest: /etc/logrotate.d/unifi-syslog
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Allow UDP syslog from each approved infrastructure source
+      ansible.posix.firewalld:
+        zone: FedoraWorkstation
+        rich_rule: >-
+          rule family="ipv4" source address="{{ item }}"
+          port port="514" protocol="udp" accept
+        permanent: true
+        immediate: true
+        state: enabled
+      loop: "{{ unifi_syslog_sources }}"
+
+    - name: Remove superseded broad and TCP syslog firewall rules
+      ansible.posix.firewalld:
+        zone: FedoraWorkstation
+        rich_rule: >-
+          rule family="ipv4" source address="192.168.1.0/24"
+          port port="514" protocol="{{ item }}" accept
+        permanent: true
+        immediate: true
+        state: disabled
+      loop:
+        - udp
+        - tcp
+
+    - name: Enable and start rsyslog
+      ansible.builtin.systemd_service:
+        name: rsyslog
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Restart rsyslog
+      ansible.builtin.systemd_service:
+        name: rsyslog
+        state: restarted

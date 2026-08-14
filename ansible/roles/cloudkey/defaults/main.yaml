@@ -1,0 +1,20 @@
+name_server:
+  - '::1'
+  - '127.0.0.1'
+  - '192.168.10.1'
+  - '1.1.1.1'
+  - '8.8.8.8'
+
+host_mappings_loadbalancer:
+
+# These will be rendered on the USG as /etc/hosts entries
+host_mappings:
+
+# These will end up in the USG /etc/dnsmasq.conf
+dns_forwarding_options:
+
+load_balancing:
+
+firewall:
+
+interfaces:

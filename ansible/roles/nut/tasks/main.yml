@@ -1,0 +1,4 @@
+---
+# tasks file for nut
+- name: Install and Configure nut Package
+  import_tasks: nut-server.yml

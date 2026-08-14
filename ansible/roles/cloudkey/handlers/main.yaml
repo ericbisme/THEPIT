@@ -1,0 +1,38 @@
+---
+- name: restart unifi
+  service:
+    name: unifi
+    state: restarted
+  listen: "Restart Unifi"
+
+- name: Unifi Controller login
+  listen: "Reprovision USG"
+  uri:
+    url: "{{ controller_uri }}/api/login"
+    method: POST
+    body_format: json
+    body:
+      username: "{{ controller_user }}"
+      password: "{{ controller_pass }}"
+    status_code: 200
+  register: unifi_login_response
+  until: unifi_login_response.json.meta.rc == "ok"
+  delay: 60
+  retries: 2
+
+- name: Unifi Reprovision USG
+  listen: "Reprovision USG"
+  uri:
+    url: "{{ controller_uri }}/api/s/default/cmd/devmgr"
+    method: POST
+    body_format: json
+    body:
+      cmd: 'force-provision'
+      mac: "{{ usg_mac }}"
+    status_code: 200
+    headers:
+      Cookie: "{{ unifi_login_response.set_cookie }}"
+  register: unifi_command_response
+  until: unifi_command_response.json.meta.rc == "ok"
+  delay: 60
+  retries: 2

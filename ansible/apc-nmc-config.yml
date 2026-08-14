@@ -1,0 +1,49 @@
+---
+- name: Render the APC NMC2 desired configuration
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    apc_nmc_address: 192.168.1.93
+    apc_nmc_hostname: apcF8EE73
+    apc_nmc_domain: ericbisme.net
+    apc_nmc_syslog_server: 192.168.1.54
+    apc_nmc_syslog_port: 514
+    apc_nmc_config_output: "{{ playbook_dir }}/../build/apc/config.ini"
+
+  tasks:
+    - name: Create the local APC build directory
+      ansible.builtin.file:
+        path: "{{ apc_nmc_config_output | dirname }}"
+        state: directory
+        mode: "0700"
+
+    - name: Render the non-secret partial NMC2 configuration
+      ansible.builtin.template:
+        src: templates/apc-nmc-config.ini.j2
+        dest: "{{ apc_nmc_config_output }}"
+        mode: "0600"
+
+    - name: Read the rendered configuration for validation
+      ansible.builtin.slurp:
+        src: "{{ apc_nmc_config_output }}"
+      register: apc_nmc_rendered
+
+    - name: Validate required settings and absence of credential fields
+      ansible.builtin.assert:
+        that:
+          - "'HostName=' + apc_nmc_hostname in apc_nmc_config_text"
+          - "'Server1=' + apc_nmc_syslog_server in apc_nmc_config_text"
+          - "'Port1=' + (apc_nmc_syslog_port | string) in apc_nmc_config_text"
+          - "'Community=' not in apc_nmc_config_text"
+          - "'Password=' not in apc_nmc_config_text"
+          - "'Phrase=' not in apc_nmc_config_text"
+        fail_msg: The rendered APC configuration is incomplete or contains a credential field.
+      vars:
+        apc_nmc_config_text: "{{ apc_nmc_rendered.content | b64decode }}"
+
+    - name: Report the reviewable artifact
+      ansible.builtin.debug:
+        msg: >-
+          Rendered {{ apc_nmc_config_output }} for {{ apc_nmc_address }}. This playbook does not
+          upload the file or change the UPS/NMC.

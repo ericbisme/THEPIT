@@ -1,0 +1,9 @@
+[Interface]
+PrivateKey = <content of client1_private.key>
+Address = 10.255.252.2/24
+DNS = <internal DNS Server>
+
+[Peer]
+PublicKey = <content of wg_public.key>
+Endpoint = <external-fqdn>:443
+AllowedIPs = <local subnets>, 10.255.252.0/24

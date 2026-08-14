@@ -1,0 +1,20 @@
+; Managed by ansible/apc-nmc-config.yml.
+; This is a partial NMC2 configuration and intentionally contains no credentials.
+
+[NetworkTCP/IP]
+HostName={{ apc_nmc_hostname }}
+DomainName={{ apc_nmc_domain }}
+
+[NetworkSYSLOG]
+Syslog=enabled
+Facility=User
+Server1={{ apc_nmc_syslog_server }}
+Port1={{ apc_nmc_syslog_port }}
+Protocol1=0
+Language1=enUs
+SyslogMapCritical=Info
+SyslogMapWarning=Warning
+SyslogMapInformational=Info
+
+[SystemID]
+Name={{ apc_nmc_hostname }}

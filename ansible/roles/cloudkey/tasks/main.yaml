@@ -1,0 +1,5 @@
+- name: Use Let's Encrypt to install a valid certificate
+  import_tasks: letsencrypt.yaml
+
+- name: Render and place config.gateway.json on the controller
+  import_tasks: config-gateway-json.yaml
