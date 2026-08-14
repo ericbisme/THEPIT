@@ -10,6 +10,9 @@ Verify live state before applying any playbook.
 - `apc-nmc-config.yml` renders and validates a non-secret partial AP9631 `config.ini`. Its default
   is render-only; an explicit apply flag backs up the live configuration and uploads the reviewed
   artifact over password-authenticated SCP with a pinned host key.
+- `inventory` includes the current UniFi controller as `unifi-controller` in the
+  `unifi_controllers` group. Its public Ed25519 host key is pinned; SSH credentials come only from
+  `UNIFI_SSH_USERNAME` and `UNIFI_SSH_PASSWORD` in the process environment.
 - `ups-nut.yml` is existing NUT automation for the directly attached CyberPower UPS on Porter and
   k8s-node1. It does not manage the APC rack UPS.
 - `prometheus-node-exporter.yml` is existing workstation exporter automation and depends on the
@@ -22,6 +25,22 @@ Verify live state before applying any playbook.
 not a Cloud Key and is not represented by that role. The legacy entry point intentionally fails
 instead of provisioning. Keep the encrypted historical variables until they have survived a real
 usage cycle and their replacement or archival value has been assessed.
+
+## UniFi controller access
+
+The current controller was verified over read-only SSH as hostname `UCKP`, Debian 11, with Python
+3.9 at `/usr/bin/python3`. UniFi Console SSH uses the `root` account and keyboard-interactive
+authentication. Load the local secret environment before running Ansible:
+
+```bash
+cd ansible
+set -a; source ~/codex.env; set +a
+ansible -i inventory unifi_controllers -m ansible.builtin.ping
+```
+
+If the controller is replaced, reset, or regenerates its SSH keys, stop on the host-key error and
+verify the new fingerprint in the local console UI or through an independent trusted path before
+updating `files/unifi-controller-known-hosts`. Do not bypass host-key checking.
 
 ## APC automation boundary
 

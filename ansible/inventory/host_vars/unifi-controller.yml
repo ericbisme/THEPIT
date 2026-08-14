@@ -1,0 +1,11 @@
+---
+ansible_host: 192.168.2.2
+ansible_connection: ssh
+ansible_user: "{{ lookup('env', 'UNIFI_SSH_USERNAME') }}"
+ansible_password: "{{ lookup('env', 'UNIFI_SSH_PASSWORD') }}"
+ansible_python_interpreter: /usr/bin/python3
+ansible_ssh_common_args: >-
+  -o StrictHostKeyChecking=yes
+  -o UserKnownHostsFile={{ inventory_dir }}/../files/unifi-controller-known-hosts
+  -o PreferredAuthentications=keyboard-interactive
+  -o PubkeyAuthentication=no

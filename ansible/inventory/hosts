@@ -3,9 +3,13 @@ k8s-node1
 k8s-node2
 usg
 porter
+unifi-controller
 
 [workstations]
 porter
+
+[unifi_controllers]
+unifi-controller
 
 [kube_master]
 k8s-node1
