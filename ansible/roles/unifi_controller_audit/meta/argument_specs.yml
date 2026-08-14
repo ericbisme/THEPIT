@@ -1,0 +1,16 @@
+---
+argument_specs:
+  main:
+    short_description: Audit a UniFi Console without changing it
+    options:
+      unifi_controller_audit_expected_hostname:
+        type: str
+        required: true
+      unifi_controller_audit_required_services:
+        type: list
+        elements: str
+        required: true
+      unifi_controller_audit_config_gateway_paths:
+        type: list
+        elements: path
+        required: true

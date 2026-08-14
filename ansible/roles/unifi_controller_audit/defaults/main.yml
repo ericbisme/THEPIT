@@ -1,0 +1,9 @@
+---
+unifi_controller_audit_expected_hostname: UCKP
+unifi_controller_audit_required_services:
+  - unifi.service
+  - unifi-core.service
+unifi_controller_audit_config_gateway_paths:
+  - /usr/lib/unifi/data/sites/default/config.gateway.json
+  - /srv/unifi/data/sites/default/config.gateway.json
+  - /data/unifi/data/sites/default/config.gateway.json

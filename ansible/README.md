@@ -13,6 +13,9 @@ Verify live state before applying any playbook.
 - `inventory` includes the current UniFi controller as `unifi-controller` in the
   `unifi_controllers` group. Its public Ed25519 host key is pinned; SSH credentials come only from
   `UNIFI_SSH_USERNAME` and `UNIFI_SSH_PASSWORD` in the process environment.
+- `unifi-controller-audit.yml` runs the read-only `unifi_controller_audit` role. It verifies the
+  controller identity and UniFi services and reports whether a legacy USG `config.gateway.json`
+  exists at any known controller path.
 - `ups-nut.yml` is existing NUT automation for the directly attached CyberPower UPS on Porter and
   k8s-node1. It does not manage the APC rack UPS.
 - `prometheus-node-exporter.yml` is existing workstation exporter automation and depends on the
@@ -36,6 +39,7 @@ authentication. Load the local secret environment before running Ansible:
 cd ansible
 set -a; source ~/codex.env; set +a
 ansible -i inventory unifi_controllers -m ansible.builtin.ping
+ansible-playbook -i inventory unifi-controller-audit.yml --check
 ```
 
 If the controller is replaced, reset, or regenerates its SSH keys, stop on the host-key error and

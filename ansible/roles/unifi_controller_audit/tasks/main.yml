@@ -1,0 +1,40 @@
+---
+- name: Collect service state
+  ansible.builtin.service_facts:
+
+- name: Inspect historical USG override locations
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    get_attributes: false
+    get_checksum: true
+    get_mime: false
+  loop: "{{ unifi_controller_audit_config_gateway_paths }}"
+  register: unifi_controller_audit_gateway_files
+
+- name: Validate the expected controller identity and services
+  ansible.builtin.assert:
+    that:
+      - ansible_hostname == unifi_controller_audit_expected_hostname
+      - ansible_distribution == 'Debian'
+      - ansible_python.version.major == 3
+      - ansible_facts.services[item].state == 'running'
+    fail_msg: >-
+      The controller identity or required service state differs from the reviewed THEPIT baseline.
+      Stop before using this host for a mutating playbook.
+  loop: "{{ unifi_controller_audit_required_services }}"
+
+- name: Report the read-only controller audit
+  ansible.builtin.debug:
+    msg:
+      hostname: "{{ ansible_hostname }}"
+      operating_system: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+      kernel: "{{ ansible_kernel }}"
+      python: "{{ ansible_python_version }}"
+      uptime_seconds: "{{ ansible_uptime_seconds }}"
+      required_services: >-
+        {{ dict(unifi_controller_audit_required_services |
+        zip(unifi_controller_audit_required_services |
+        map('extract', ansible_facts.services) | map(attribute='state'))) }}
+      config_gateway_files: >-
+        {{ unifi_controller_audit_gateway_files.results |
+        selectattr('stat.exists') | map(attribute='item') | list }}

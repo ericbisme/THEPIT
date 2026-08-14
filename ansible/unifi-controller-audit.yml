@@ -1,0 +1,8 @@
+---
+- name: Audit the current UniFi controller without changing it
+  hosts: unifi_controllers
+  gather_facts: true
+  become: false
+
+  roles:
+    - role: unifi_controller_audit
