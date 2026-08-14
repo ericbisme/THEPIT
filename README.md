@@ -8,6 +8,8 @@ canonical home for network documentation, diagrams, runbooks, and infrastructure
 - [`AGENTS.md`](AGENTS.md) — operating and safety rules for automated work
 - [`docs/Home.md`](docs/Home.md) — wiki home
 - [`docs/UNIFI-INVENTORY.md`](docs/UNIFI-INVENTORY.md) — evidence-backed UniFi inventory
+- [`docs/USG-REPLACEMENT-INVENTORY.md`](docs/USG-REPLACEMENT-INVENTORY.md) — measured gateway,
+  Xfinity, modem, and migration requirements
 - [`ansible/`](ansible/) — host, UPS-monitoring, APC NMC, and syslog automation
 - [`diagrams/network.dot`](diagrams/network.dot) — historical network topology source
 - [`diagrams/dns.dot`](diagrams/dns.dot) — historical DNS-flow source
