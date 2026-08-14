@@ -10,6 +10,9 @@
     apc_nmc_syslog_server: 192.168.1.54
     apc_nmc_syslog_port: 514
     apc_nmc_config_output: "{{ playbook_dir }}/../build/apc/config.ini"
+    apc_nmc_known_hosts: "{{ playbook_dir }}/files/apc-nmc-known-hosts"
+    apc_nmc_apply: false
+    apc_nmc_backup_root: "{{ lookup('env', 'HOME') }}/.local/share/thepit/backups/apc"
 
   tasks:
     - name: Create the local APC build directory
@@ -35,6 +38,11 @@
           - "'HostName=' + apc_nmc_hostname in apc_nmc_config_text"
           - "'Server1=' + apc_nmc_syslog_server in apc_nmc_config_text"
           - "'Port1=' + (apc_nmc_syslog_port | string) in apc_nmc_config_text"
+          - "'Telnet=disabled' in apc_nmc_config_text"
+          - "'SSH=enabled' in apc_nmc_config_text"
+          - "'HTTP=disabled' in apc_nmc_config_text"
+          - "'HTTPS=enabled' in apc_nmc_config_text"
+          - "'MinimumProtocol=TLS1.2' in apc_nmc_config_text"
           - "'Community=' not in apc_nmc_config_text"
           - "'Password=' not in apc_nmc_config_text"
           - "'Phrase=' not in apc_nmc_config_text"
@@ -45,5 +53,118 @@
     - name: Report the reviewable artifact
       ansible.builtin.debug:
         msg: >-
-          Rendered {{ apc_nmc_config_output }} for {{ apc_nmc_address }}. This playbook does not
-          upload the file or change the UPS/NMC.
+          Rendered {{ apc_nmc_config_output }} for {{ apc_nmc_address }}. Apply is
+          {{ apc_nmc_apply | bool | ternary('enabled', 'disabled') }}.
+
+    - name: Apply the reviewed configuration over pinned SCP
+      when: apc_nmc_apply | bool
+      block:
+        - name: Freeze the pre-change backup path for this run
+          ansible.builtin.set_fact:
+            apc_nmc_backup_path: >-
+              {{ apc_nmc_backup_root }}/{{ now(utc=true, fmt='%Y-%m-%dT%H%M%SZ') }}-pre-ansible
+
+        - name: Require credentials from the process environment
+          ansible.builtin.assert:
+            that:
+              - lookup('env', 'APC_USERNAME') | length > 0
+              - lookup('env', 'APC_PASSWORD') | length > 0
+            fail_msg: Source ~/codex.env or otherwise export APC_USERNAME and APC_PASSWORD.
+
+        - name: Create the protected pre-change backup directory
+          ansible.builtin.file:
+            path: "{{ apc_nmc_backup_path }}"
+            state: directory
+            mode: "0700"
+
+        - name: Retrieve the live pre-change configuration over SCP
+          ansible.builtin.command:
+            argv:
+              - sshpass
+              - -e
+              - scp
+              - -O
+              - -v
+              - -o
+              - StrictHostKeyChecking=yes
+              - -o
+              - "UserKnownHostsFile={{ apc_nmc_known_hosts }}"
+              - "{{ lookup('env', 'APC_USERNAME') }}@{{ apc_nmc_address }}:config.ini"
+              - "{{ apc_nmc_backup_path }}/config.ini"
+          environment:
+            SSHPASS: "{{ lookup('env', 'APC_PASSWORD') }}"
+          register: apc_nmc_backup_scp
+          changed_when: true
+          failed_when: >-
+            apc_nmc_backup_scp.rc not in [0, 1] or
+            'Sink: C0644' not in apc_nmc_backup_scp.stderr or
+            'Transferred:' not in apc_nmc_backup_scp.stderr
+          no_log: true
+
+        - name: Protect the live pre-change configuration
+          ansible.builtin.file:
+            path: "{{ apc_nmc_backup_path }}/config.ini"
+            mode: "0600"
+
+        - name: Upload the reviewed partial configuration over SCP
+          ansible.builtin.command:
+            argv:
+              - sshpass
+              - -e
+              - scp
+              - -O
+              - -v
+              - -o
+              - StrictHostKeyChecking=yes
+              - -o
+              - "UserKnownHostsFile={{ apc_nmc_known_hosts }}"
+              - "{{ apc_nmc_config_output }}"
+              - "{{ lookup('env', 'APC_USERNAME') }}@{{ apc_nmc_address }}:config.ini"
+          environment:
+            SSHPASS: "{{ lookup('env', 'APC_PASSWORD') }}"
+          register: apc_nmc_apply_scp
+          changed_when: true
+          failed_when: >-
+            apc_nmc_apply_scp.rc not in [0, 1] or
+            'Sending file modes:' not in apc_nmc_apply_scp.stderr or
+            'Transferred:' not in apc_nmc_apply_scp.stderr
+          no_log: true
+
+        - name: Wait for SSH after configuration application
+          ansible.builtin.wait_for:
+            host: "{{ apc_nmc_address }}"
+            port: 22
+            state: started
+            delay: 5
+            timeout: 90
+
+        - name: Wait for HTTPS after configuration application
+          ansible.builtin.wait_for:
+            host: "{{ apc_nmc_address }}"
+            port: 443
+            state: started
+            timeout: 90
+
+        - name: Verify plaintext management services are closed
+          ansible.builtin.wait_for:
+            host: "{{ apc_nmc_address }}"
+            port: "{{ item }}"
+            state: stopped
+            timeout: 15
+          loop:
+            - 23
+            - 80
+
+        - name: Verify the HTTPS endpoint responds
+          ansible.builtin.uri:
+            url: "https://{{ apc_nmc_address }}/"
+            method: GET
+            follow_redirects: none
+            status_code: 303
+            validate_certs: false
+
+        - name: Report the protected backup location
+          ansible.builtin.debug:
+            msg: >-
+              Applied the reviewed partial configuration. The credential-bearing pre-change
+              config is mode 0600 at {{ apc_nmc_backup_path }}/config.ini and is outside Git.

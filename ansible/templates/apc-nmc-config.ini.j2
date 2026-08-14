@@ -5,6 +5,12 @@
 HostName={{ apc_nmc_hostname }}
 DomainName={{ apc_nmc_domain }}
 
+[NetworkTelnet]
+Port=23
+Telnet=disabled
+SSHPort=22
+SSH=enabled
+
 [NetworkSYSLOG]
 Syslog=enabled
 Facility=User
@@ -12,9 +18,16 @@ Server1={{ apc_nmc_syslog_server }}
 Port1={{ apc_nmc_syslog_port }}
 Protocol1=0
 Language1=enUs
-SyslogMapCritical=Info
+SyslogMapCritical=Critical
 SyslogMapWarning=Warning
 SyslogMapInformational=Info
+
+[NetworkWeb]
+Port=80
+HTTP=disabled
+HTTPSPort=443
+HTTPS=enabled
+MinimumProtocol=TLS1.2
 
 [SystemID]
 Name={{ apc_nmc_hostname }}
