@@ -1,0 +1,169 @@
+# k8s-node1 persistent-root K3s bootstrap.
+#
+# This profile intentionally leaves bulk_storage and k8s_storage untouched.
+# K3s and its embedded-etcd state live on FLATCAR_ROOT at their upstream
+# default path, /var/lib/rancher/k3s.
+variant: flatcar
+version: 1.0.0
+
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCnmIL1mt2OdRxIeIcTXQFysGf6I777PStDA1h11IQ8IEaYw9BBljb13mK5GJ8aUPVs+w7t/yTfihjog0LIOwgAsZ36vrp4kgak38d2Q/vCXJp94IzHnXcjQIm3TlOrDg/D6zJQNAi0FzsTyfd+/IiTI8Kl3go9ypsL44RR3cmOna/PdY3aD0fv+GhQjXCQPSU37vIu0vLqK50S35gtgAlnly0Blqu95KUMbTqfVDCh6KbBiyXgg8+Tf3JetWq8uf4yz7N/S/OMaxg57FtF6I1qJrPRt5XsLsdQxZzy1DX8BuH/RFDQS4xWSQYc7CNszxBqDVKi7x0cmi/Li6E4dq3N bolinger@porter.ericbisme.net
+
+storage:
+  directories:
+    - path: /var/lib/thepit
+      mode: 0700
+    - path: /mnt/bulk_storage
+      mode: 0755
+    - path: /mnt/k8s_storage
+      mode: 0755
+    - path: /etc/rancher/k3s
+      mode: 0700
+    - path: /opt/bin
+      mode: 0755
+  links:
+    # Flatcar applies `systemd.units[].enabled` through presets. Custom units
+    # have no preset rule, so explicitly create the normal systemd enablement
+    # link instead of relying on a distro preset.
+    - path: /etc/systemd/system/multi-user.target.wants/k3s.service
+      target: ../k3s.service
+      hard: false
+      overwrite: true
+    - path: /etc/systemd/system/multi-user.target.wants/nfs-server.service
+      target: /usr/lib/systemd/system/nfs-server.service
+      hard: false
+      overwrite: true
+  files:
+    - path: /etc/hostname
+      mode: 0644
+      overwrite: true
+      contents:
+        inline: k8s-node1
+    - path: /etc/rancher/k3s/config.yaml
+      mode: 0600
+      overwrite: true
+      contents:
+        inline: |
+          # Managed by THEPIT. First embedded-etcd server; do not share its
+          # generated server token outside the configured secret store.
+          cluster-init: true
+          node-name: k8s-node1
+          tls-san:
+            - 192.168.10.126
+            - k8s-node1
+          write-kubeconfig-mode: "0600"
+          disable:
+            - servicelb
+            - traefik
+    - path: /etc/exports
+      mode: 0644
+      overwrite: true
+      contents:
+        inline: |
+          /mnt/k8s_storage/dynamic_pvclaims 192.168.10.125(rw,sync,all_squash,anonuid=1000,anongid=1000,no_subtree_check) 192.168.10.126(rw,sync,all_squash,anonuid=1000,anongid=1000,no_subtree_check) 192.168.10.127(rw,sync,all_squash,anonuid=1000,anongid=1000,no_subtree_check)
+          /mnt/k8s_storage 192.168.1.0/24(rw,sync,root_squash,no_subtree_check)
+
+systemd:
+  units:
+    - name: mnt-bulk_storage.mount
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Mount protected bulk storage read-only
+
+        [Mount]
+        What=/dev/bulk_storage/bulk_storage
+        Where=/mnt/bulk_storage
+        Type=xfs
+        Options=ro,nosuid,nodev,noexec
+
+        [Install]
+        WantedBy=multi-user.target
+
+    - name: thepit-local-root-canary.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Create or validate the persistent local-root canary marker
+        After=local-fs.target
+
+        [Service]
+        Type=oneshot
+        ExecStart=/bin/sh -ec 'test -s /var/lib/thepit/local-root-canary || { date --iso-8601=seconds > /var/lib/thepit/local-root-canary; sync; }; test -s /var/lib/thepit/local-root-canary'
+
+        [Install]
+        WantedBy=multi-user.target
+
+    - name: thepit-k3s-download.service
+      contents: |
+        [Unit]
+        Description=Install the pinned, verified K3s binary from Porter
+        Wants=network-online.target
+        After=network-online.target
+
+        [Service]
+        Type=oneshot
+        ExecStart=/bin/sh -ec 'expected=2f98a9f8fe5782479ee2d54e70a1b10a7f6fd4cae8d38ed3098452dc6eed76b5; target=/opt/bin/k3s; if test -x "$target" && echo "$expected  $target" | sha256sum --check --status -; then exit 0; fi; curl --fail --location --silent --show-error --output "$target.part" http://192.168.10.125/k3s/v1.36.3+k3s1/k3s; echo "$expected  $target.part" | sha256sum --check -; install -o root -g root -m 0755 "$target.part" "$target"; rm -f "$target.part"'
+
+    - name: mnt-k8s_storage.mount
+      contents: |
+        [Unit]
+        Description=Mount THEPIT Kubernetes application storage
+
+        [Mount]
+        What=/dev/k8s_storage/k8s_storage
+        Where=/mnt/k8s_storage
+        Type=xfs
+        Options=rw,nosuid,nodev
+
+        [Install]
+        WantedBy=multi-user.target
+
+    - name: thepit-k8s-storage-prepare.service
+      contents: |
+        [Unit]
+        Description=Prepare the dedicated dynamic NFS PV root
+        Requires=mnt-k8s_storage.mount
+        After=mnt-k8s_storage.mount
+        Before=nfs-server.service
+
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/bin/install -d -o 1000 -g 1000 -m 0770 /mnt/k8s_storage/dynamic_pvclaims
+
+    - name: nfs-server.service
+      dropins:
+        - name: 10-thepit-k8s-storage.conf
+          contents: |
+            [Unit]
+            Requires=mnt-k8s_storage.mount thepit-k8s-storage-prepare.service
+            After=mnt-k8s_storage.mount thepit-k8s-storage-prepare.service
+
+    - name: k3s.service
+      contents: |
+        [Unit]
+        Description=Lightweight Kubernetes
+        Documentation=https://docs.k3s.io
+        Wants=network-online.target
+        After=network-online.target thepit-k3s-download.service
+        Requires=thepit-k3s-download.service
+
+        [Service]
+        Type=exec
+        Environment=K3S_KUBECONFIG_MODE=600
+        KillMode=process
+        Delegate=yes
+        LimitNOFILE=1048576
+        LimitNPROC=infinity
+        LimitCORE=infinity
+        TasksMax=infinity
+        TimeoutStartSec=0
+        Restart=always
+        RestartSec=5s
+        ExecStart=/opt/bin/k3s server
+
+        [Install]
+        WantedBy=multi-user.target

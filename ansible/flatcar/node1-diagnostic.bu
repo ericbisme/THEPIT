@@ -1,0 +1,38 @@
+# Minimal, non-destructive Flatcar PXE diagnostic for k8s-node1.
+#
+# Purpose: distinguish an early Flatcar/PXE/firmware restart from the storage
+# canary. It deliberately does not activate LVM, mount a filesystem, write a
+# disk, start NFS, or start Kubernetes. It grants only the existing operator
+# SSH key to the standard Flatcar `core` account.
+variant: flatcar
+version: 1.0.0
+
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCnmIL1mt2OdRxIeIcTXQFysGf6I777PStDA1h11IQ8IEaYw9BBljb13mK5GJ8aUPVs+w7t/yTfihjog0LIOwgAsZ36vrp4kgak38d2Q/vCXJp94IzHnXcjQIm3TlOrDg/D6zJQNAi0FzsTyfd+/IiTI8Kl3go9ypsL44RR3cmOna/PdY3aD0fv+GhQjXCQPSU37vIu0vLqK50S35gtgAlnly0Blqu95KUMbTqfVDCh6KbBiyXgg8+Tf3JetWq8uf4yz7N/S/OMaxg57FtF6I1qJrPRt5XsLsdQxZzy1DX8BuH/RFDQS4xWSQYc7CNszxBqDVKi7x0cmi/Li6E4dq3N bolinger@porter.ericbisme.net
+
+storage:
+  files:
+    - path: /etc/hostname
+      mode: 0644
+      contents:
+        inline: k8s-node1
+
+systemd:
+  units:
+    - name: thepit-flatcar-diagnostic.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Report a successful minimal THEPIT Flatcar diagnostic boot
+        After=network-online.target
+        Wants=network-online.target
+
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/bin/logger -t thepit-flatcar-diagnostic minimal Flatcar PXE boot reached multi-user target; no local storage was activated
+
+        [Install]
+        WantedBy=multi-user.target

@@ -1,0 +1,33 @@
+---
+- name: Mirror the pinned K3s bootstrap binary on Porter
+  hosts: porter
+  become: true
+  vars:
+    k3s_version: v1.36.3+k3s1
+    k3s_sha256: 2f98a9f8fe5782479ee2d54e70a1b10a7f6fd4cae8d38ed3098452dc6eed76b5
+    k3s_mirror_dir: "/var/www/html/k3s/{{ k3s_version }}"
+    k3s_release_url: "https://github.com/k3s-io/k3s/releases/download/{{ k3s_version | replace('+', '%2B') }}/k3s"
+
+  tasks:
+    - name: Create the version-pinned K3s mirror directory
+      ansible.builtin.file:
+        path: "{{ k3s_mirror_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Download the pinned K3s AMD64 binary with its official checksum
+      ansible.builtin.get_url:
+        url: "{{ k3s_release_url }}"
+        dest: "{{ k3s_mirror_dir }}/k3s"
+        checksum: "sha256:{{ k3s_sha256 }}"
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Verify the mirrored binary through Porter's HTTP service
+      ansible.builtin.uri:
+        url: "http://127.0.0.1/k3s/{{ k3s_version }}/k3s"
+        status_code: 200
+        return_content: false

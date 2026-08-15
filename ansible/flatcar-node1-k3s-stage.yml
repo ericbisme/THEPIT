@@ -1,0 +1,60 @@
+---
+- name: Stage the k8s-node1 persistent-root K3s PXE profile
+  hosts: porter
+  become: true
+  vars:
+    flatcar_node1_pxe_config: /var/lib/tftpboot/pxelinux.cfg/01-b8-ae-ed-e9-8c-a4
+    flatcar_node1_k3s_ignition: /var/www/html/flatcar/ignition/k8s-node1-k3s.ign
+    flatcar_node1_diagnostic_ignition: /var/www/html/flatcar/ignition/k8s-node1-diagnostic.ign
+
+  pre_tasks:
+    - name: Require the compiled K3s and RAM recovery Ignition artifacts
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      delegate_to: localhost
+      become: false
+      register: flatcar_node1_k3s_artifacts
+      loop:
+        - build/flatcar/k8s-node1-k3s.ign
+        - build/flatcar/k8s-node1-diagnostic.ign
+
+    - name: Refuse to stage an unbuilt K3s profile
+      ansible.builtin.assert:
+        that: item.stat.exists and item.stat.size > 0
+        fail_msg: Build the reviewed profile with make -C flatcar node1-k3s node1-diagnostic.
+      loop: "{{ flatcar_node1_k3s_artifacts.results }}"
+
+  tasks:
+    - name: Publish the K3s Ignition document
+      ansible.builtin.copy:
+        src: build/flatcar/k8s-node1-k3s.ign
+        dest: "{{ flatcar_node1_k3s_ignition }}"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Publish the RAM recovery Ignition document
+      ansible.builtin.copy:
+        src: build/flatcar/k8s-node1-diagnostic.ign
+        dest: "{{ flatcar_node1_diagnostic_ignition }}"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Select the persistent-root K3s PXE menu
+      ansible.builtin.copy:
+        src: flatcar/node1-k3s-pxelinux.cfg
+        dest: "{{ flatcar_node1_pxe_config }}"
+        owner: root
+        group: root
+        mode: '0644'
+        backup: true
+
+    - name: Verify both published Ignition documents through local HTTP
+      ansible.builtin.uri:
+        url: "{{ item }}"
+        status_code: 200
+        return_content: false
+      loop:
+        - http://127.0.0.1/flatcar/ignition/k8s-node1-k3s.ign
+        - http://127.0.0.1/flatcar/ignition/k8s-node1-diagnostic.ign
