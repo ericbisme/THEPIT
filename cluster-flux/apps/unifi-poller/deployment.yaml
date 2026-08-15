@@ -27,7 +27,7 @@ spec:
               value: "true"
             - name: UP_INFLUXDB_DISABLE
               value: "true"
-            - name: UP_UNIFI_DEFAULT_AUTH_TOKEN
+            - name: UP_UNIFI_DEFAULT_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: unifi-poller-credentials
