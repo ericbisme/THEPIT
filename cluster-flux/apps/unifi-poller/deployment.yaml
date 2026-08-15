@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unifi-poller
+  namespace: observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: unifi-poller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: unifi-poller
+    spec:
+      containers:
+        - name: unifi-poller
+          image: ghcr.io/unpoller/unpoller:v3.4.1
+          env:
+            - name: UP_UNIFI_DEFAULT_URL
+              value: http://192.168.2.2
+            - name: UP_UNIFI_DEFAULT_VERIFY_SSL
+              value: "false"
+            - name: UP_UNIFI_DEFAULT_SAVE_SITES
+              value: "true"
+            - name: UP_UNIFI_DEFAULT_SAVE_DPI
+              value: "true"
+            - name: UP_INFLUXDB_DISABLE
+              value: "true"
+            - name: UP_UNIFI_DEFAULT_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: unifi-poller-credentials
+                  key: auth-token
+          ports:
+            - name: metrics
+              containerPort: 9130
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: unifi-poller
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: unifi-poller
+spec:
+  selector:
+    app.kubernetes.io/name: unifi-poller
+  ports:
+    - name: metrics
+      port: 9130
+      targetPort: metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: unifi-poller
+  namespace: observability
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: unifi-poller
+  endpoints:
+    - port: metrics
+      interval: 60s

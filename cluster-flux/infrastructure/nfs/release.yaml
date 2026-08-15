@@ -1,0 +1,35 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: nfs-subdir-external-provisioner
+  namespace: flux-system
+spec:
+  interval: 30m
+  releaseName: nfs-subdir-external-provisioner
+  targetNamespace: kube-system
+  chart:
+    spec:
+      chart: nfs-subdir-external-provisioner
+      version: 4.0.18
+      sourceRef:
+        kind: HelmRepository
+        name: nfs-subdir-external-provisioner
+        namespace: flux-system
+      interval: 24h
+  install:
+    remediation:
+      retries: 3
+  values:
+    nfs:
+      server: 192.168.10.126
+      path: /mnt/k8s_storage/dynamic_pvclaims
+    storageClass:
+      create: true
+      name: thepit-nfs
+      provisionerName: thepit.ericbisme.net/nfs
+      defaultClass: false
+      reclaimPolicy: Retain
+      allowVolumeExpansion: true
+      archiveOnDelete: true
+    podSecurityPolicy:
+      enabled: false
