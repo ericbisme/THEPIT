@@ -24,5 +24,7 @@ spec:
       retries: 3
   values:
     prometheus:
+      namespace: observability
+      serviceAccount: kube-prometheus-stack-prometheus
       serviceMonitor:
         enabled: true
