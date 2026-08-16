@@ -36,3 +36,19 @@ spec:
   nodeSelectors:
     - matchLabels:
         kubernetes.io/hostname: k8s-node1
+---
+# Keep BGP for routed clients, and answer ARP for clients that share VLAN 10
+# with the service address. MetalLB supports announcing the same pool via both
+# protocols; this is required because same-subnet clients do not consult the
+# USG's BGP route before attempting ARP.
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: thepit-services-vlan10
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - thepit-services
+  nodeSelectors:
+    - matchLabels:
+        kubernetes.io/hostname: k8s-node1

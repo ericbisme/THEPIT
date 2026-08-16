@@ -11,6 +11,11 @@ cluster. Its FRR speaker peers directly with the USG on VLAN 10:
 | Speaker source | `192.168.10.126` (`k8s-node1`) |
 | Reserved service pool | `192.168.10.128`–`192.168.10.131` |
 
+The pool is announced by both BGP and layer 2. BGP serves routed clients on
+other VLANs; layer 2 answers ARP for clients that share VLAN 10 with the VIP.
+Without the latter, same-subnet clients would ARP for the address instead of
+consulting the USG's BGP route.
+
 The pool has `autoAssign: false`. A service receives an address only when its
 manifest explicitly requests one from `thepit-services`; this prevents an
 accidental `LoadBalancer` service from claiming a household address.
