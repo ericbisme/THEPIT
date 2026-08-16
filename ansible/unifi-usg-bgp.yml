@@ -1,0 +1,8 @@
+---
+- name: Stage the persistent USG BGP override without provisioning
+  hosts: unifi_controllers
+  gather_facts: false
+  become: false
+
+  roles:
+    - role: unifi_usg_bgp

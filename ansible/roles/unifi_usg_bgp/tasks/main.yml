@@ -1,0 +1,34 @@
+---
+- name: Validate the BGP override inputs
+  ansible.builtin.assert:
+    that:
+      - unifi_usg_bgp_controller_asn | int > 0
+      - unifi_usg_bgp_router_id | ansible.utils.ipaddr
+      - unifi_usg_bgp_neighbors | length > 0
+      - unifi_usg_bgp_neighbors | map(attribute='address') | map('ansible.utils.ipaddr') | select | length == unifi_usg_bgp_neighbors | length
+    fail_msg: Refuse to create a USG BGP override with incomplete or invalid peer data.
+
+- name: Create the controller site override directory
+  ansible.builtin.file:
+    path: "{{ unifi_usg_bgp_site_directory }}"
+    state: directory
+    owner: unifi
+    group: unifi
+    mode: '0750'
+
+- name: Stage the narrowly scoped persistent USG BGP override
+  ansible.builtin.template:
+    src: config.gateway.json.j2
+    dest: "{{ unifi_usg_bgp_override_path }}"
+    owner: unifi
+    group: unifi
+    mode: '0640'
+    backup: true
+    validate: /usr/bin/python3 -m json.tool %s
+
+- name: Report the required manual activation step
+  ansible.builtin.debug:
+    msg: >-
+      The override is staged but inactive. In UniFi Network, explicitly provision
+      the USG-Pro-4 once, then verify the BGP session before allocating any
+      MetalLB service address.

@@ -1,0 +1,18 @@
+{
+  "protocols": {
+    "bgp": {
+      "{{ unifi_usg_bgp_controller_asn }}": {
+        "neighbor": {
+{% for neighbor in unifi_usg_bgp_neighbors %}
+          "{{ neighbor.address }}": {
+            "remote-as": "{{ neighbor.remote_asn }}"
+          }{{ "," if not loop.last else "" }}
+{% endfor %}
+        },
+        "parameters": {
+          "router-id": "{{ unifi_usg_bgp_router_id }}"
+        }
+      }
+    }
+  }
+}

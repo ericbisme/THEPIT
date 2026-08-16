@@ -1,0 +1,10 @@
+---
+# USG-Pro-4 only. config.gateway.json is a controller-side override merged into
+# the gateway's generated configuration on the next explicit UniFi provision.
+unifi_usg_bgp_site_directory: /data/unifi/data/sites/default
+unifi_usg_bgp_override_path: "{{ unifi_usg_bgp_site_directory }}/config.gateway.json"
+unifi_usg_bgp_controller_asn: 64501
+unifi_usg_bgp_router_id: 192.168.10.1
+unifi_usg_bgp_neighbors:
+  - address: 192.168.10.126
+    remote_asn: 64500
