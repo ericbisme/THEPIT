@@ -11,8 +11,8 @@ This component deploys the pinned `kube-prometheus-stack` chart into the
   container is disabled; the Grafana pod uses its `fsGroup` instead.
 - Alertmanager is intentionally disabled until there is an actionable,
   independent notification destination.
-- Grafana is intentionally cluster-internal. Do not expose the administrative
-  UI through an Internet-facing route.
+- Grafana is private to VLAN10 at `192.168.10.129`; it is not exposed through
+  an Internet-facing route.
 
 ## Grafana access
 
@@ -20,12 +20,14 @@ The Grafana administrator credential is the external Kubernetes Secret
 `observability/grafana-admin-credentials`; it is not stored in Git. The secret
 keys are `admin-user` and `admin-password`.
 
-From a workstation with the THEPIT kubeconfig:
+Pi-hole manages `grafana.ericbisme.net` through ExternalDNS. From a workstation
+on a permitted home VLAN, open <http://grafana.ericbisme.net>. The equivalent
+temporary access path remains:
 
 ```sh
 kubectl -n observability port-forward service/kube-prometheus-stack-grafana 3000:80
 ```
 
-Then open <http://127.0.0.1:3000>. The chart provisions Prometheus and the
-standard Kubernetes dashboards automatically. A future private DNS/MetalLB
-endpoint must be a separate reviewed change.
+The chart provisions Prometheus and the standard Kubernetes dashboards
+automatically. Do not add a public DNS record or Internet port-forward for the
+administrative UI.

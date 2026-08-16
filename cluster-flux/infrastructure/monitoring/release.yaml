@@ -30,9 +30,6 @@ spec:
     alertmanager:
       enabled: false
     grafana:
-      # Grafana is deliberately internal-only for this first increment. Access it
-      # with kubectl port-forward until a separately reviewed private endpoint is
-      # needed.
       enabled: true
       admin:
         # Created outside Git as observability/grafana-admin-credentials.
@@ -50,6 +47,14 @@ spec:
       # chown the provisioned directory. The pod's fsGroup owns its volume.
       initChownData:
         enabled: false
+      service:
+        type: LoadBalancer
+        loadBalancerIP: 192.168.10.129
+        annotations:
+          metallb.io/address-pool: thepit-services
+          external-dns.alpha.kubernetes.io/controller: dns-controller
+          external-dns.alpha.kubernetes.io/hostname: grafana.ericbisme.net
+          external-dns.alpha.kubernetes.io/target: 192.168.10.129
     prometheus:
       prometheusSpec:
         retention: 7d
