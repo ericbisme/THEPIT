@@ -129,7 +129,7 @@ metadata:
     app.kubernetes.io/name: calibre-web
   annotations:
     metallb.io/address-pool: thepit-services
-    external-dns.alpha.kubernetes.io/controller: thepit-private
+    external-dns.alpha.kubernetes.io/controller: dns-controller
     external-dns.alpha.kubernetes.io/hostname: books.ericbisme.net
     external-dns.alpha.kubernetes.io/target: 192.168.10.128
 spec:

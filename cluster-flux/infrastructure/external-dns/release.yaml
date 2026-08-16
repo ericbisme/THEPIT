@@ -30,9 +30,8 @@ spec:
     registry: noop
     domainFilters:
       - ericbisme.net
-    annotationFilter: external-dns.alpha.kubernetes.io/controller=thepit-private
+    annotationFilter: external-dns.alpha.kubernetes.io/controller=dns-controller
     extraArgs:
-      - --controller=thepit-private
       - --pihole-api-version=6
       - --pihole-server=http://192.168.1.3
     env:
