@@ -1,0 +1,38 @@
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: thepit-services
+  namespace: metallb-system
+spec:
+  addresses:
+    - 192.168.10.128-192.168.10.131
+  autoAssign: false
+---
+apiVersion: metallb.io/v1beta2
+kind: BGPPeer
+metadata:
+  name: usg-vlan10
+  namespace: metallb-system
+spec:
+  myASN: 64500
+  peerASN: 64501
+  peerAddress: 192.168.10.1
+  sourceAddress: 192.168.10.126
+  nodeSelectors:
+    - matchLabels:
+        kubernetes.io/hostname: k8s-node1
+---
+apiVersion: metallb.io/v1beta1
+kind: BGPAdvertisement
+metadata:
+  name: thepit-services
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - thepit-services
+  peers:
+    - usg-vlan10
+  aggregationLength: 32
+  nodeSelectors:
+    - matchLabels:
+        kubernetes.io/hostname: k8s-node1
