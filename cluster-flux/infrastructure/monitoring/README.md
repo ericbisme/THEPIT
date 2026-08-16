@@ -7,6 +7,8 @@ This component deploys the pinned `kube-prometheus-stack` chart into the
 
 - Prometheus stores seven days (up to 8 GB) of metrics on `thepit-nfs`.
 - Grafana stores dashboards and settings on a 2 GiB `thepit-nfs` PVC.
+- `thepit-nfs` is root-squashed, so Grafana's startup ownership-reset init
+  container is disabled; the Grafana pod uses its `fsGroup` instead.
 - Alertmanager is intentionally disabled until there is an actionable,
   independent notification destination.
 - Grafana is intentionally cluster-internal. Do not expose the administrative
