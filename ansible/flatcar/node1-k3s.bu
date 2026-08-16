@@ -65,6 +65,9 @@ storage:
         inline: |
           /mnt/k8s_storage/dynamic_pvclaims 192.168.10.125(rw,sync,all_squash,anonuid=1000,anongid=1000,no_subtree_check) 192.168.10.126(rw,sync,all_squash,anonuid=1000,anongid=1000,no_subtree_check) 192.168.10.127(rw,sync,all_squash,anonuid=1000,anongid=1000,no_subtree_check)
           /mnt/k8s_storage 192.168.1.0/24(rw,sync,root_squash,no_subtree_check)
+          # Irreplaceable library data: expose only this directory, read-only,
+          # and only to the node that currently runs the Calibre-Web workload.
+          /mnt/bulk_storage/mediaserver/books 192.168.10.126(ro,sync,root_squash,no_subtree_check)
 
 systemd:
   units:

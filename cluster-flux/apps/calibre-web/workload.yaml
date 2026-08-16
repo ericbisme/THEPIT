@@ -1,0 +1,143 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: calibre-books
+  labels:
+    app.kubernetes.io/name: calibre-web
+spec:
+  capacity:
+    storage: 435Gi
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=4.2
+  nfs:
+    server: 192.168.10.126
+    path: /mnt/bulk_storage/mediaserver/books
+    readOnly: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: calibre-books
+  namespace: thepit
+  labels:
+    app.kubernetes.io/name: calibre-web
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: calibre-books
+  resources:
+    requests:
+      storage: 435Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: calibre-web-config
+  namespace: thepit
+  labels:
+    app.kubernetes.io/name: calibre-web
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: thepit-nfs
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calibre-web
+  namespace: thepit
+  labels:
+    app.kubernetes.io/name: calibre-web
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: calibre-web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: calibre-web
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: k8s-node1
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: calibre-web
+          # LinuxServer's published 0.6.26-ls392 release, pinned by digest.
+          image: lscr.io/linuxserver/calibre-web:0.6.26-ls392@sha256:a7277fd8884b3d77e8659a2d82b0974af9812d4c1f4040c98b910da21e764a36
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: America/Denver
+          ports:
+            - name: http
+              containerPort: 8083
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: books
+              mountPath: /books
+              readOnly: true
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: calibre-web-config
+        - name: books
+          persistentVolumeClaim:
+            claimName: calibre-books
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: calibre-web
+  namespace: thepit
+  labels:
+    app.kubernetes.io/name: calibre-web
+  annotations:
+    metallb.io/address-pool: thepit-services
+    external-dns.alpha.kubernetes.io/controller: thepit-private
+    external-dns.alpha.kubernetes.io/hostname: books.ericbisme.net
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 192.168.10.128
+  selector:
+    app.kubernetes.io/name: calibre-web
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

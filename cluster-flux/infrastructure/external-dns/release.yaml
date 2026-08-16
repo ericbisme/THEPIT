@@ -25,6 +25,7 @@ spec:
       name: pihole
     sources:
       - ingress
+      - service
     policy: upsert-only
     registry: noop
     domainFilters:
