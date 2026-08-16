@@ -13,6 +13,9 @@ This component deploys the pinned `kube-prometheus-stack` chart into the
   independent notification destination.
 - Grafana is private to VLAN10 at `192.168.10.129`; it is not exposed through
   an Internet-facing route.
+- Six official UniFi Poller Prometheus dashboards are pinned by Grafana.com
+  dashboard ID and revision in the HelmRelease, under the `UniFi Poller`
+  folder.
 
 ## Grafana access
 

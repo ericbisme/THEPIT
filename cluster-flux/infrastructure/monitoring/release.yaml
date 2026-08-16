@@ -55,6 +55,46 @@ spec:
           external-dns.alpha.kubernetes.io/controller: dns-controller
           external-dns.alpha.kubernetes.io/hostname: grafana.ericbisme.net
           external-dns.alpha.kubernetes.io/target: 192.168.10.129
+      # Official UniFi Poller Prometheus dashboards, pinned to revisions so a
+      # Grafana.com update cannot silently change the UI.
+      dashboardProviders:
+        dashboardproviders.yaml:
+          apiVersion: 1
+          providers:
+            - name: default
+              orgId: 1
+              folder: UniFi Poller
+              type: file
+              disableDeletion: false
+              editable: false
+              options:
+                path: /var/lib/grafana/dashboards/default
+      dashboards:
+        default:
+          unifi-client-dpi:
+            gnetId: 11310
+            revision: 5
+            datasource: Prometheus
+          unifi-network-sites:
+            gnetId: 11311
+            revision: 5
+            datasource: Prometheus
+          unifi-usw-insights:
+            gnetId: 11312
+            revision: 9
+            datasource: Prometheus
+          unifi-usg-insights:
+            gnetId: 11313
+            revision: 9
+            datasource: Prometheus
+          unifi-uap-insights:
+            gnetId: 11314
+            revision: 10
+            datasource: Prometheus
+          unifi-client-insights:
+            gnetId: 11315
+            revision: 9
+            datasource: Prometheus
     prometheus:
       prometheusSpec:
         retention: 7d
