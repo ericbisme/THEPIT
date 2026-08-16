@@ -30,7 +30,22 @@ spec:
     alertmanager:
       enabled: false
     grafana:
-      enabled: false
+      # Grafana is deliberately internal-only for this first increment. Access it
+      # with kubectl port-forward until a separately reviewed private endpoint is
+      # needed.
+      enabled: true
+      admin:
+        # Created outside Git as observability/grafana-admin-credentials.
+        existingSecret: grafana-admin-credentials
+        userKey: admin-user
+        passwordKey: admin-password
+      persistence:
+        enabled: true
+        type: sts
+        storageClassName: thepit-nfs
+        accessModes:
+          - ReadWriteOnce
+        size: 2Gi
     prometheus:
       prometheusSpec:
         retention: 7d
