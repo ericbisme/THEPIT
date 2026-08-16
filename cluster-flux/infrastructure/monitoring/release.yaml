@@ -46,6 +46,10 @@ spec:
         accessModes:
           - ReadWriteOnce
         size: 2Gi
+      # thepit-nfs is root-squashed, so Grafana's root init container cannot
+      # chown the provisioned directory. The pod's fsGroup owns its volume.
+      initChownData:
+        enabled: false
     prometheus:
       prometheusSpec:
         retention: 7d
