@@ -1,6 +1,6 @@
 /var/log/remote/unifi/*.log /var/log/remote/apc/*.log {
     daily
-    rotate 30
+    rotate 90
     maxsize 100M
     missingok
     notifempty

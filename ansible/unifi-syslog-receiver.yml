@@ -41,6 +41,23 @@
         group: root
         mode: "0644"
 
+    - name: Create journald drop-in directory
+      ansible.builtin.file:
+        path: /etc/systemd/journald.conf.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install bounded Porter journald retention policy
+      ansible.builtin.copy:
+        src: files/journald-porter-retention.conf
+        dest: /etc/systemd/journald.conf.d/20-thepit-retention.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart journald
+
     - name: Allow UDP syslog from each approved infrastructure source
       ansible.posix.firewalld:
         zone: FedoraWorkstation
@@ -75,4 +92,9 @@
     - name: Restart rsyslog
       ansible.builtin.systemd_service:
         name: rsyslog
+        state: restarted
+
+    - name: Restart journald
+      ansible.builtin.systemd_service:
+        name: systemd-journald
         state: restarted
