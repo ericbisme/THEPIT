@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alloy-config
+  namespace: logging
+data:
+  config.alloy: |
+    logging {
+      level = "info"
+      format = "logfmt"
+    }
+    loki.write "default" {
+      endpoint {
+        url = "http://loki.logging.svc.cluster.local:3100/loki/api/v1/push"
+      }
+    }
+    local.file_match "porter_remote" {
+      path_targets = [
+        {__path__ = "/var/log/remote/unifi/*.log", job = "syslog", source = "unifi"},
+        {__path__ = "/var/log/remote/unifi/*.log-*", job = "syslog", source = "unifi"},
+        {__path__ = "/var/log/remote/apc/*.log", job = "syslog", source = "apc"},
+        {__path__ = "/var/log/remote/apc/*.log-*", job = "syslog", source = "apc"},
+      ]
+    }
+    loki.source.file "porter_remote" {
+      targets = local.file_match.porter_remote.targets
+      forward_to = [loki.write.default.receiver]
+      tail_from_end = true
+    }
+    local.file_match "kubernetes_pods" {
+      path_targets = [{__path__ = "/var/log/pods/*/*/*.log", job = "kubernetes-pods"}]
+    }
+    loki.source.file "kubernetes_pods" {
+      targets = local.file_match.kubernetes_pods.targets
+      forward_to = [loki.write.default.receiver]
+      tail_from_end = true
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alloy-porter
+  namespace: logging
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: alloy-porter}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: alloy-porter}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: porter}
+      containers:
+        - name: alloy
+          image: grafana/alloy:v1.18.0
+          args: [run, /etc/alloy/config.alloy, --server.http.listen-addr=127.0.0.1:12345]
+          securityContext: {runAsUser: 0}
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {memory: 256Mi}
+          volumeMounts:
+            - {name: config, mountPath: /etc/alloy, readOnly: true}
+            - {name: porter-remote-logs, mountPath: /var/log/remote, readOnly: true}
+      volumes:
+        - name: config
+          configMap: {name: alloy-config}
+        - name: porter-remote-logs
+          hostPath: {path: /var/log/remote, type: Directory}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: alloy-pods
+  namespace: logging
+spec:
+  selector:
+    matchLabels: {app.kubernetes.io/name: alloy-pods}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: alloy-pods}
+    spec:
+      containers:
+        - name: alloy
+          image: grafana/alloy:v1.18.0
+          args: [run, /etc/alloy/config.alloy, --server.http.listen-addr=127.0.0.1:12345]
+          securityContext: {runAsUser: 0}
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {memory: 256Mi}
+          volumeMounts:
+            - {name: config, mountPath: /etc/alloy, readOnly: true}
+            - {name: pod-logs, mountPath: /var/log/pods, readOnly: true}
+      volumes:
+        - name: config
+          configMap: {name: alloy-config}
+        - name: pod-logs
+          hostPath: {path: /var/log/pods, type: Directory}

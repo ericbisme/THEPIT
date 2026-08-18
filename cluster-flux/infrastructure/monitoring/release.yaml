@@ -31,6 +31,12 @@ spec:
       enabled: false
     grafana:
       enabled: true
+      additionalDataSources:
+        - name: Loki
+          type: loki
+          access: proxy
+          url: http://loki.logging.svc.cluster.local:3100
+          isDefault: false
       admin:
         # Created outside Git as observability/grafana-admin-credentials.
         existingSecret: grafana-admin-credentials
