@@ -17,9 +17,7 @@ data:
     local.file_match "porter_remote" {
       path_targets = [
         {__path__ = "/var/log/remote/unifi/*.log", job = "syslog", source = "unifi"},
-        {__path__ = "/var/log/remote/unifi/*.log-*", job = "syslog", source = "unifi"},
         {__path__ = "/var/log/remote/apc/*.log", job = "syslog", source = "apc"},
-        {__path__ = "/var/log/remote/apc/*.log-*", job = "syslog", source = "apc"},
       ]
     }
     loki.source.file "porter_remote" {
