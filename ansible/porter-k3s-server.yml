@@ -1,0 +1,126 @@
+---
+# Join Porter to the existing embedded-etcd K3s cluster as a server.
+#
+# The join token is deliberately supplied at runtime:
+#   ansible-playbook -i inventory/hosts porter-k3s-server.yml \
+#     -e k3s_join_token="$THEPIT_K3S_JOIN_TOKEN"
+- name: Join Porter to THEPIT K3s as a server
+  hosts: porter
+  become: true
+  gather_facts: true
+
+  vars:
+    k3s_version: v1.36.3+k3s1
+    k3s_sha256: 2f98a9f8fe5782479ee2d54e70a1b10a7f6fd4cae8d38ed3098452dc6eed76b5
+    k3s_binary_url: "http://127.0.0.1/k3s/{{ k3s_version }}/k3s"
+    k3s_binary_path: /opt/bin/k3s
+    k3s_server_url: https://192.168.10.126:6443
+    k3s_node_ip: 192.168.10.125
+
+  tasks:
+    - name: Require the join token at runtime
+      ansible.builtin.assert:
+        that:
+          - k3s_join_token is defined
+          - k3s_join_token | length > 20
+        fail_msg: >-
+          Supply the node1 server token as k3s_join_token; it must never be
+          committed to the repository.
+
+    - name: Create K3s directories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: /opt/bin, mode: "0755" }
+        - { path: /etc/rancher/k3s, mode: "0700" }
+
+    - name: Install the pinned K3s binary from Porter's local mirror
+      ansible.builtin.get_url:
+        url: "{{ k3s_binary_url }}"
+        dest: "{{ k3s_binary_path }}"
+        checksum: "sha256:{{ k3s_sha256 }}"
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Configure Porter as an embedded-etcd K3s server member
+      ansible.builtin.copy:
+        dest: /etc/rancher/k3s/config.yaml
+        owner: root
+        group: root
+        mode: "0600"
+        content: |
+          server: {{ k3s_server_url }}
+          token: {{ k3s_join_token }}
+          data-dir: /var/lib/rancher/k3s
+          node-name: porter
+          node-ip: {{ k3s_node_ip }}
+          advertise-address: {{ k3s_node_ip }}
+          flannel-iface: eno1
+          tls-san:
+            - {{ k3s_node_ip }}
+            - porter
+            - porter.ericbisme.net
+          write-kubeconfig-mode: "0600"
+          disable:
+            - servicelb
+            - traefik
+
+    - name: Install the Porter K3s systemd unit
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/k3s.service
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Lightweight Kubernetes
+          Documentation=https://docs.k3s.io
+          RequiresMountsFor=/var/lib/rancher/k3s
+          Wants=network-online.target
+          After=network-online.target
+
+          [Service]
+          Type=exec
+          Environment=K3S_KUBECONFIG_MODE=600
+          KillMode=process
+          Delegate=yes
+          LimitNOFILE=1048576
+          LimitNPROC=infinity
+          LimitCORE=infinity
+          TasksMax=infinity
+          TimeoutStartSec=0
+          Restart=always
+          RestartSec=5s
+          ExecStart={{ k3s_binary_path }} server
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Enable and start K3s
+      ansible.builtin.systemd:
+        name: k3s
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: Wait for the K3s API socket
+      ansible.builtin.wait_for:
+        host: "{{ k3s_node_ip }}"
+        port: 6443
+        timeout: 120
+
+    - name: Verify the local K3s service
+      ansible.builtin.command: >-
+        {{ k3s_binary_path }} kubectl --kubeconfig=/etc/rancher/k3s/k3s.yaml
+        get node porter -o wide
+      register: porter_k3s_node
+      changed_when: false
+
+    - name: Report the joined node
+      ansible.builtin.debug:
+        var: porter_k3s_node.stdout_lines
