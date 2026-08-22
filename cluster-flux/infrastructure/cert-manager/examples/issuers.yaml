@@ -1,0 +1,41 @@
+# Deliberately not referenced by the active Kustomization until AWS credentials are provisioned.
+# Replace ACCESS_KEY_ID and verify hostedZoneID before applying.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    email: contact@ericbisme.net
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    solvers:
+      - dns01:
+          route53:
+            region: us-west-2
+            hostedZoneID: Z24FPOSZ13XYWF
+            accessKeyID: ACCESS_KEY_ID
+            secretAccessKeySecretRef:
+              name: cert-manager-route53-ericbisme
+              key: secretAccessKey
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-production
+spec:
+  acme:
+    email: contact@ericbisme.net
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-production
+    solvers:
+      - dns01:
+          route53:
+            region: us-west-2
+            hostedZoneID: Z24FPOSZ13XYWF
+            accessKeyID: ACCESS_KEY_ID
+            secretAccessKeySecretRef:
+              name: cert-manager-route53-ericbisme
+              key: secretAccessKey
