@@ -1,0 +1,10 @@
+---
+# This playbook is intentionally self-contained so the ansible/ directory can
+# be copied to the iMac and run with: ansible-playbook -i localhost, -c local
+- name: Reconcile the iMac CyberPower UPS and exporter
+  hosts: all
+  become: true
+  vars_files:
+    - inventory/host_vars/cyberpower-imac.yml
+  roles:
+    - nut

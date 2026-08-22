@@ -18,6 +18,18 @@ Verify live state before applying any playbook.
   exists at any known controller path.
 - `ups-nut.yml` is existing NUT automation for the directly attached CyberPower UPS on Porter and
   k8s-node1. It does not manage the APC rack UPS.
+- `ups-nut-imac-local.yml` is a self-contained local-run playbook for the CyberPower UPS attached
+  to the Fedora iMac at `192.168.1.37`. The matching `.service` and `.timer` files provide a daily
+  reconciliation after copying this `ansible/` directory to `/opt/thepit-ansible` on that host:
+
+  ```bash
+  sudo install -d /opt/thepit-ansible
+  sudo cp -a ansible/. /opt/thepit-ansible/
+  sudo install -m 0644 /opt/thepit-ansible/ups-nut-imac-local.service /etc/systemd/system/
+  sudo install -m 0644 /opt/thepit-ansible/ups-nut-imac-local.timer /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now ups-nut-imac-local.timer
+  ```
 - Porter’s NUT exporter is pinned to the UPS name `cyberpower` in
   `cluster-flux/infrastructure/monitoring/nut-exporter.yaml`. The exporter supports one UPS per
   scrape; when a second UPS is attached, add its `[cyberpower-2]` section to Porter’s `ups.conf`

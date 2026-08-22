@@ -4,6 +4,8 @@ nut_host: localhost
 nut_max_retry: 3
 nut_mode: netserver
 nut_remove_shutdown_script: true
+nut_driver_service_enabled: false
+nut_ups_name: "cyberpower"
 
 nut_user_master_name: monuser
 nut_user_master_password: monpassword

@@ -4,6 +4,7 @@ k8s-node2
 usg
 porter
 unifi-controller
+cyberpower-imac
 
 [workstations]
 porter

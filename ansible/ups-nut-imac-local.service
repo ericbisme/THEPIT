@@ -1,0 +1,9 @@
+[Unit]
+Description=Reconcile THEPIT iMac NUT configuration
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/thepit-ansible
+ExecStart=/usr/bin/ansible-playbook -i localhost, -c local ups-nut-imac-local.yml

@@ -1,0 +1,29 @@
+---
+ansible_host: 192.168.1.37
+ansible_user: bolinger
+
+nut_mode: netserver
+nut_driver_service_enabled: true
+nut_ups_name: "cyberpower-imac"
+nut_exporter_enabled: true
+nut_exporter_server: 127.0.0.1
+nut_exporter_listen_address: ":9199"
+
+nut_ups_devices:
+  - |
+    [cyberpower-imac]
+      driver = "usbhid-ups"
+      port = "auto"
+      vendorid = "0764"
+      productid = "0501"
+      product = "CP1500PFCLCD"
+      serial = "000000000000"
+      vendor = "CPS"
+      bus = "001"
+      desc = "CyberPower on iMac"
+
+nut_ups_monitors:
+  - "MONITOR cyberpower-imac@127.0.0.1 1 {{ nut_user_master_name }} {{ nut_user_master_password }} master"
+
+nut_ups_listen: |
+  LISTEN 127.0.0.1 3493

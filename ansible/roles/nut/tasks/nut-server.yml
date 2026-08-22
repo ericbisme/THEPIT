@@ -32,3 +32,24 @@
     mode: 0644
   become: yes
   notify: Reload udev rules
+
+- name: Apply UPS udev permissions to already-attached devices
+  command: udevadm trigger --action=add
+  become: true
+  changed_when: false
+  when: nut_driver_service_enabled | bool
+
+- name: Reconcile Fedora NUT driver service instances
+  command: /usr/sbin/upsdrvsvcctl resync
+  become: true
+  changed_when: false
+  when: nut_driver_service_enabled | bool
+
+- name: Enable and start the configured NUT driver service
+  systemd:
+    name: "nut-driver@{{ nut_ups_name }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: true
+  when: nut_driver_service_enabled | bool
