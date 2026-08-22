@@ -43,6 +43,10 @@
   command: /usr/sbin/upsdrvsvcctl resync
   become: true
   changed_when: false
+  # Fedora's helper returns 42 when it made changes, even when reconciliation
+  # completed successfully. Treat that documented non-zero status as success.
+  failed_when: result.rc not in [0, 42]
+  register: result
   when: nut_driver_service_enabled | bool
 
 - name: Enable and start the configured NUT driver service

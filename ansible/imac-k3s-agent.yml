@@ -13,7 +13,7 @@
     k3s_binary_url: "https://github.com/k3s-io/k3s/releases/download/{{ k3s_version | replace('+', '%2B') }}/k3s"
     k3s_binary_path: /opt/bin/k3s
     k3s_server_url: https://192.168.10.126:6443
-    k3s_node_name: cyberpower-imac
+    k3s_node_name: saison
     k3s_node_ip: 192.168.1.37
     k3s_flannel_iface: enp3s0f0
 
@@ -107,4 +107,3 @@
       retries: 12
       delay: 5
       until: k3s_agent_status.rc == 0
-

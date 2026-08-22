@@ -9,7 +9,7 @@ nut_remove_shutdown_script: true
 
 nut_ups_devices:
   - |
-    [cyberpower]
+    [porter]
       driver = "usbhid-ups"
       port = "auto"
       vendorid = "0764"
@@ -18,12 +18,12 @@ nut_ups_devices:
       serial = "000000000000"
       vendor = "CPS"
       bus = "001"
-      desc = "CyberPower on Porter"
+      desc = "CyberPower on porter"
 
 nut_ups_monitors:
-  - "MONITOR cyberpower@192.168.10.125 1 {{ nut_user_master_name }} {{ nut_user_master_password }} master"
+  - "MONITOR porter@192.168.10.125 1 {{ nut_user_master_name }} {{ nut_user_master_password }} master"
 
 nut_exporter_enabled: true
 nut_exporter_server: "192.168.10.125"
 nut_driver_service_enabled: true
-nut_ups_name: "cyberpower"
+nut_ups_name: "porter"

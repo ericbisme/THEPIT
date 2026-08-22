@@ -6,5 +6,9 @@
   become: true
   vars_files:
     - inventory/host_vars/cyberpower-imac.yml
+  tasks:
+    - name: Set the iMac system hostname
+      ansible.builtin.hostname:
+        name: saison
   roles:
     - nut

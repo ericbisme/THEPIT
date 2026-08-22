@@ -43,10 +43,10 @@ spec:
       # one device. Keep this pinned even while Porter has only one attached.
       params:
         ups:
-          - cyberpower
+          - porter
       metricRelabelings:
         - targetLabel: ups
-          replacement: cyberpower
+          replacement: porter
 ---
 apiVersion: v1
 kind: Service
@@ -91,7 +91,7 @@ spec:
       interval: 30s
       params:
         ups:
-          - cyberpower-imac
+          - saison
       metricRelabelings:
         - targetLabel: ups
-          replacement: cyberpower-imac
+          replacement: saison
