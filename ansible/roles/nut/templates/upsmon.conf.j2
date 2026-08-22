@@ -264,6 +264,19 @@ DEADTIME 15
 #
 # If you use IGNORE, don't use any other flags on the same line.
 
+# THEPIT policy: never broadcast UPS events to interactive terminals.  Keep
+# the events in syslog so Loki/Prometheus alerting can handle them instead.
+NOTIFYFLAG ONLINE     SYSLOG
+NOTIFYFLAG ONBATT     SYSLOG
+NOTIFYFLAG LOWBATT    SYSLOG
+NOTIFYFLAG FSD        SYSLOG
+NOTIFYFLAG COMMOK     SYSLOG
+NOTIFYFLAG COMMBAD    SYSLOG
+NOTIFYFLAG SHUTDOWN   SYSLOG
+NOTIFYFLAG REPLBATT   SYSLOG
+NOTIFYFLAG NOCOMM     SYSLOG
+NOTIFYFLAG NOPARENT   SYSLOG
+
 # --------------------------------------------------------------------------
 # RBWARNTIME - replace battery warning time in seconds
 #
