@@ -1,0 +1,167 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apc-snmp-exporter-template
+  namespace: observability
+data:
+  render.sh: |
+    #!/bin/sh
+    set -eu
+    cat > /etc/snmp-exporter/snmp.yml <<EOF
+    auths:
+      apc_v3:
+        version: 3
+        username: ${SNMP_USERNAME}
+        security_level: authPriv
+        password: ${SNMP_AUTH_PASSPHRASE}
+        auth_protocol: SHA
+        priv_protocol: AES
+        priv_password: ${SNMP_PRIVACY_PASSPHRASE}
+    modules:
+      apc_ups:
+        walk:
+          - 1.3.6.1.4.1.318.1.1.1.2
+          - 1.3.6.1.4.1.318.1.1.1.3
+          - 1.3.6.1.4.1.318.1.1.1.4
+        metrics:
+          - name: ups_battery_status
+            oid: 1.3.6.1.4.1.318.1.1.1.2.1.1
+            type: gauge
+            help: APC UPS battery status enum.
+          - name: ups_battery_charge_percent
+            oid: 1.3.6.1.4.1.318.1.1.1.2.2.1
+            type: gauge
+            help: APC UPS battery state of charge percentage.
+          - name: ups_battery_runtime_ticks
+            oid: 1.3.6.1.4.1.318.1.1.1.2.2.3
+            type: gauge
+            help: APC UPS runtime remaining in SNMP TimeTicks (hundredths of a second).
+          - name: ups_battery_replace_indicator
+            oid: 1.3.6.1.4.1.318.1.1.1.2.2.4
+            type: gauge
+            help: APC UPS battery replacement indicator enum.
+          - name: ups_input_voltage_volts
+            oid: 1.3.6.1.4.1.318.1.1.1.3.2.1
+            type: gauge
+            help: APC UPS input voltage in volts.
+          - name: ups_input_frequency_hz
+            oid: 1.3.6.1.4.1.318.1.1.1.3.2.4
+            type: gauge
+            help: APC UPS input frequency in hertz.
+          - name: ups_output_voltage_volts
+            oid: 1.3.6.1.4.1.318.1.1.1.4.2.1
+            type: gauge
+            help: APC UPS output voltage in volts.
+          - name: ups_output_frequency_hz
+            oid: 1.3.6.1.4.1.318.1.1.1.4.2.2
+            type: gauge
+            help: APC UPS output frequency in hertz.
+          - name: ups_output_load_percent
+            oid: 1.3.6.1.4.1.318.1.1.1.4.2.3
+            type: gauge
+            help: APC UPS output load percentage.
+          - name: ups_output_current_amps
+            oid: 1.3.6.1.4.1.318.1.1.1.4.2.4
+            type: gauge
+            help: APC UPS output current in amps.
+          - name: ups_output_energy_raw
+            oid: 1.3.6.1.4.1.318.1.1.1.4.3.6
+            type: gauge
+            help: APC UPS cumulative output energy in the device's native units.
+    EOF
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apc-snmp-exporter
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: apc-snmp-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: apc-snmp-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: apc-snmp-exporter
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: porter
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+      initContainers:
+        - name: render-config
+          image: busybox:1.37.0
+          command: ["/bin/sh", "/templates/render.sh"]
+          env:
+            - name: SNMP_USERNAME
+              valueFrom: {secretKeyRef: {name: apc-snmpv3, key: username}}
+            - name: SNMP_AUTH_PASSPHRASE
+              valueFrom: {secretKeyRef: {name: apc-snmpv3, key: auth-passphrase}}
+            - name: SNMP_PRIVACY_PASSPHRASE
+              valueFrom: {secretKeyRef: {name: apc-snmpv3, key: privacy-passphrase}}
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          volumeMounts:
+            - {name: template, mountPath: /templates, readOnly: true}
+            - {name: config, mountPath: /etc/snmp-exporter}
+      containers:
+        - name: snmp-exporter
+          image: quay.io/prometheus/snmp-exporter:v0.29.0
+          args: ["--config.file=/etc/snmp-exporter/snmp.yml"]
+          ports:
+            - {name: http, containerPort: 9116}
+          readinessProbe:
+            httpGet: {path: /metrics, port: http}
+          livenessProbe:
+            httpGet: {path: /metrics, port: http}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 128Mi}
+          volumeMounts:
+            - {name: config, mountPath: /etc/snmp-exporter, readOnly: true}
+      volumes:
+        - name: template
+          configMap: {name: apc-snmp-exporter-template, defaultMode: 0755}
+        - name: config
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apc-snmp-exporter
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: apc-snmp-exporter
+spec:
+  selector:
+    app.kubernetes.io/name: apc-snmp-exporter
+  ports:
+    - {name: http, port: 9116, targetPort: http}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: apc-snmp-exporter
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: apc-snmp-exporter
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: apc-snmp-exporter
+  endpoints:
+    - port: http
+      path: /snmp
+      interval: 60s
+      params:
+        module: [apc_ups]
+        target: [192.168.1.93]
