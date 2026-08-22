@@ -39,3 +39,11 @@ spec:
     - port: metrics
       path: /ups_metrics
       interval: 30s
+      # nut_exporter requires an explicit UPS name once NUT exposes more than
+      # one device. Keep this pinned even while Porter has only one attached.
+      params:
+        ups:
+          - cyberpower
+      relabelings:
+        - targetLabel: ups
+          replacement: cyberpower

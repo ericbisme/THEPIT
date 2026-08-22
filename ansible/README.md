@@ -18,8 +18,91 @@ Verify live state before applying any playbook.
   exists at any known controller path.
 - `ups-nut.yml` is existing NUT automation for the directly attached CyberPower UPS on Porter and
   k8s-node1. It does not manage the APC rack UPS.
+- Porter’s NUT exporter is pinned to the UPS name `cyberpower` in
+  `cluster-flux/infrastructure/monitoring/nut-exporter.yaml`. The exporter supports one UPS per
+  scrape; when a second UPS is attached, add its `[cyberpower-2]` section to Porter’s `ups.conf`
+  and add a second ServiceMonitor endpoint (or ServiceMonitor) with `params.ups: [cyberpower-2]`
+  and a matching `ups` relabel. Do not remove the explicit `params.ups` from the existing scrape.
 - `prometheus-node-exporter.yml` is existing workstation exporter automation and depends on the
   external `cloudalchemy.node-exporter` role.
+- `flatcar-pxe-mirror.yml` configures Porter as a local, signature-verified mirror of Flatcar's
+  Stable BIOS PXE kernel and initramfs. It refreshes daily and retains every verified release for
+  rollback, but deliberately does not alter UniFi DHCP settings or any existing PXE MAC entry.
+  Run it only after reviewing the network and storage implications:
+
+  ```bash
+  cd ansible
+  ansible-playbook -i inventory flatcar-pxe-mirror.yml
+  ```
+- `porter-vlan10.yml` reconciles only Porter's local `/etc/hosts` aliases after its VLAN 10 move.
+  It does not manage Pi-hole DNS, UniFi DHCP, or switch-port profiles.
+- `flatcar/node1-canary.bu` is a non-deployed, non-destructive Flatcar Butane source for the
+  node1 PXE canary. `make -C flatcar node1-canary` produces ignored Ignition JSON under
+  `build/flatcar/`. `flatcar-node1-canary.yml` can explicitly stage that artifact and an opt-in
+  PXELINUX menu; its timeout continues to boot node1's local disk. Neither playbook changes
+  UniFi DHCP, node disks, NFS, or K3s.
+- `flatcar/node1-diagnostic.bu` is the first response to a failed storage canary: a separate,
+  opt-in Flatcar PXE profile with the same operator SSH key but **no** LVM activation, mounts,
+  NFS, or Kubernetes. Stage it only with the explicit diagnostic state:
+
+  ```bash
+  make -C flatcar node1-diagnostic
+  ansible-playbook -i inventory/hosts flatcar-node1-canary.yml \
+    -e flatcar_node1_canary_state=diagnostic
+  ```
+
+  The PXELINUX timeout still boots the local disk. Select `Boot Flatcar minimal diagnostic
+  (no storage)` at the physical console; it adds high-detail systemd console logging so that a
+  subsequent clean reboot can be attributed before any storage configuration is reintroduced.
+- `flatcar/node1-upstream-minimal-pxelinux.cfg` is the next isolation boundary if the diagnostic
+  profile also reboots: it uses only the Flatcar PXE kernel and initramfs, plus VGA autologin on
+  `tty1`. It has no Ignition URL, DHCP/network arguments, custom logging, storage activation, or
+  SSH configuration. Stage it with:
+
+  ```bash
+  ansible-playbook -i inventory/hosts flatcar-node1-canary.yml \
+    -e flatcar_node1_canary_state=upstream-minimal
+  ```
+
+  Select `Boot Flatcar upstream minimal (no Ignition or storage)` at Node1's console. Its timeout
+  still boots the local disk; do not add the watchdog test until this baseline result is recorded.
+- `flatcar/node1-network-ssh-pxelinux.cfg` reintroduces only `ip=dhcp`, `rd.neednet=1`, and
+  Flatcar's documented `sshkey` kernel option after the upstream-minimal boot is accepted. It is
+  still Ignition-free and storage-free. Stage it with:
+
+  ```bash
+  ansible-playbook -i inventory/hosts flatcar-node1-canary.yml \
+    -e flatcar_node1_canary_state=network-ssh
+  ```
+
+  After selecting `Boot Flatcar network + SSH (no Ignition or storage)`, verify the ephemeral
+  boot with `ssh -i ~/.ssh/ericbismenet core@192.168.10.126`. Do not use it to modify disks.
+- `flatcar/node1-ignition-ssh.bu` compiles to an otherwise empty Ignition document. The paired
+  PXE menu preserves the accepted DHCP+SSH arguments and adds only `flatcar.first_boot=1` and
+  its HTTP URL. This identifies whether Ignition fetch/processing—not its previous storage
+  configuration—caused the reboot. Build and stage it with:
+
+  ```bash
+  make -C flatcar node1-ignition-ssh
+  ansible-playbook -i inventory/hosts flatcar-node1-canary.yml \
+    -e flatcar_node1_canary_state=ignition-ssh
+  ```
+- `flatcar/node1-prestorage-pxelinux.cfg` intentionally bundles the accepted network/SSH path
+  with the original diagnostic logging flags and non-storage Ignition document. It is an explicit
+  operator-approved shortcut across the individual logging/unit/metadata checks; it remains safe
+  for existing data because it has no LVM, mount, NFS, K3s, or disk directives. Stage it with
+  `-e flatcar_node1_canary_state=prestorage`.
+- `flatcar/node1-readonly-mounts-pxelinux.cfg` is the first storage profile after the pre-storage
+  test. Its Ignition source mounts only `/dev/bulk_storage/bulk_storage` and
+  `/dev/k8s_storage/k8s_storage` as XFS with `ro,nosuid,nodev,noexec`. Flatcar auto-activates
+  the legacy LVM groups, so the source deliberately contains no `vgchange` unit. Stage it with
+  `-e flatcar_node1_canary_state=readonly-mounts`.
+- `flatcar/node1-nfs-readonly-pxelinux.cfg` is the staged NFS-only canary. It keeps both XFS
+  volumes mounted read-only and starts only `nfs-server.service`. Its exports are read-only and
+  root-squashed for Porter (`192.168.10.125`), node1/node2 (`192.168.10.126` and
+  `192.168.10.127`), and the trusted laptop LAN (`192.168.1.0/24`). It does not enable K3s.
+  Build with `make -C flatcar node1-nfs-readonly`; stage only after explicit approval using
+  `-e flatcar_node1_canary_state=nfs-readonly`.
 
 ## Quarantined legacy automation
 
