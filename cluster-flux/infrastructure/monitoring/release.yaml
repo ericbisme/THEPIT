@@ -3311,7 +3311,7 @@ spec:
                 },
                 "timezone": "browser",
                 "title": "APC UPS (snmp-exporter)",
-                "uid": "bGGblbFfhl",
+                "uid": "apc-ups-prometheus",
                 "version": 1,
                 "weekStart": ""
               }
