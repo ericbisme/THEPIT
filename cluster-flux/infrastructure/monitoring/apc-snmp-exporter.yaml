@@ -106,9 +106,6 @@ spec:
               valueFrom: {secretKeyRef: {name: apc-snmpv3, key: auth-passphrase}}
             - name: SNMP_PRIVACY_PASSPHRASE
               valueFrom: {secretKeyRef: {name: apc-snmpv3, key: privacy-passphrase}}
-          securityContext:
-            runAsUser: 0
-            runAsGroup: 0
           volumeMounts:
             - {name: template, mountPath: /templates, readOnly: true}
             - {name: config, mountPath: /etc/snmp-exporter}
