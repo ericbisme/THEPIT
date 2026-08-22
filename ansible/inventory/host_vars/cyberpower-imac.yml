@@ -19,7 +19,6 @@ nut_ups_devices:
       product = "CP1500PFCLCD"
       serial = "000000000000"
       vendor = "CPS"
-      bus = "001"
       desc = "CyberPower on saison"
 
 nut_ups_monitors:
