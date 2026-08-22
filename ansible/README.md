@@ -30,6 +30,9 @@ Verify live state before applying any playbook.
   sudo systemctl daemon-reload
   sudo systemctl enable --now ups-nut-imac-local.timer
   ```
+- `imac-k3s-agent.yml` joins the Fedora iMac as an untainted, non-control-plane K3s worker. It
+  downloads the pinned K3s binary directly because the Porter mirror is on another VLAN; supply
+  `k3s_join_token` only at runtime from the existing server token.
 - Porter’s NUT exporter is pinned to the UPS name `cyberpower` in
   `cluster-flux/infrastructure/monitoring/nut-exporter.yaml`. The exporter supports one UPS per
   scrape; when a second UPS is attached, add its `[cyberpower-2]` section to Porter’s `ups.conf`
