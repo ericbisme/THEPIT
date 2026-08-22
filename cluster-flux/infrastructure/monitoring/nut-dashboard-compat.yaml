@@ -10,9 +10,9 @@ spec:
     - name: thepit.nut-dashboard-compat
       rules:
         - record: nut_battery_charge
-          expr: network_ups_tools_battery_charge{job=~"nut-exporter|nut-exporter-imac"}
+          expr: network_ups_tools_battery_charge{job=~"nut-exporter|nut-exporter-imac"} / 100
         - record: nut_load
-          expr: network_ups_tools_ups_load{job=~"nut-exporter|nut-exporter-imac"}
+          expr: network_ups_tools_ups_load{job=~"nut-exporter|nut-exporter-imac"} / 100
         - record: nut_input_voltage_volts
           expr: network_ups_tools_input_voltage{job=~"nut-exporter|nut-exporter-imac"}
         - record: nut_input_voltage_nominal_volts
