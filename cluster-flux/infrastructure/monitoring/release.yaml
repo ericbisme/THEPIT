@@ -104,7 +104,7 @@ spec:
             gnetId: 11315
             revision: 9
             datasource: Prometheus
-          thepit-ups:
+          thepit-ups-dashboard:
             json: |
               {
                 "annotations": {"list": []},
