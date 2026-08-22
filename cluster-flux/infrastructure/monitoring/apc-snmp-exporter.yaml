@@ -116,9 +116,9 @@ spec:
           image: quay.io/prometheus/snmp-exporter:v0.29.0
           args: ["--config.file=/etc/snmp-exporter/snmp.yml"]
           readinessProbe:
-            httpGet: {path: /metrics, port: http}
+            httpGet: {path: /metrics, port: 9116}
           livenessProbe:
-            httpGet: {path: /metrics, port: http}
+            httpGet: {path: /metrics, port: 9116}
           resources:
             requests: {cpu: 10m, memory: 32Mi}
             limits: {cpu: 100m, memory: 128Mi}
