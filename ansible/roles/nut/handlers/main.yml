@@ -6,11 +6,22 @@
     state: restarted
     enabled: yes
   with_items:
-    - nut-driver
     - nut-monitor
     - nut-server
   become: true
 
 - name: Reload udev rules
   command: 'udevadm control --reload-rules && udevadm trigger'
+  become: true
+
+- name: Reload systemd
+  systemd:
+    daemon_reload: true
+  become: true
+
+- name: Restart NUT exporter
+  service:
+    name: nut_exporter
+    state: restarted
+    enabled: true
   become: true

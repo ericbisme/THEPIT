@@ -2,3 +2,7 @@
 # tasks file for nut
 - name: Install and Configure nut Package
   import_tasks: nut-server.yml
+
+- name: Install and Configure NUT Prometheus exporter
+  import_tasks: nut-exporter.yml
+  when: nut_exporter_enabled | bool

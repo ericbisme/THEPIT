@@ -1,0 +1,59 @@
+---
+- name: Install pinned NUT exporter binary
+  get_url:
+    url: "{{ nut_exporter_url }}"
+    dest: /usr/local/bin/nut_exporter
+    checksum: "{{ nut_exporter_checksum }}"
+    owner: root
+    group: root
+    mode: '0755'
+    backup: true
+  become: true
+  notify: Restart NUT exporter
+
+- name: Configure NUT exporter
+  copy:
+    dest: /etc/sysconfig/nut_exporter
+    owner: root
+    group: root
+    mode: '0600'
+    content: |
+      NUT_EXPORTER_PASSWORD={{ nut_exporter_password }}
+      OPTIONS="--nut.server={{ nut_exporter_server }} --nut.serverport={{ nut_exporter_server_port }} --nut.username={{ nut_exporter_username }} --nut.vars_enable={{ nut_exporter_vars }} --web.listen-address={{ nut_exporter_listen_address }}"
+  become: true
+  no_log: true
+  notify: Restart NUT exporter
+
+- name: Install NUT exporter systemd unit
+  copy:
+    dest: /etc/systemd/system/nut_exporter.service
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Prometheus NUT UPS Exporter
+      Wants=nut-server.service
+      After=nut-server.service
+
+      [Service]
+      User=root
+      EnvironmentFile=/etc/sysconfig/nut_exporter
+      ExecStart=/usr/local/bin/nut_exporter $OPTIONS
+      Restart=on-failure
+      RestartSec=5s
+
+      [Install]
+      WantedBy=multi-user.target
+  become: true
+  notify:
+    - Reload systemd
+    - Restart NUT exporter
+
+- name: Enable and start NUT exporter
+  systemd:
+    name: nut_exporter
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: true

@@ -19,3 +19,9 @@ nut_ups_devices:
       vendor = "CPS"
       bus = "001"
       desc = "CyberPower on Porter"
+
+nut_ups_monitors:
+  - "MONITOR cyberpower@192.168.10.125 1 {{ nut_user_master_name }} {{ nut_user_master_password }} master"
+
+nut_exporter_enabled: true
+nut_exporter_server: "192.168.10.125"
