@@ -4,3 +4,4 @@ resources:
   - release.yaml
   - apc-snmp-exporter.yaml
   - nut-exporter.yaml
+  - nut-dashboard-compat.yaml

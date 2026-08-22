@@ -104,6 +104,10 @@ spec:
             gnetId: 11315
             revision: 9
             datasource: Prometheus
+          nut-ups-monitor-25238:
+            gnetId: 25238
+            revision: 1
+            datasource: Prometheus
           thepit-ups-dashboard:
             json: |
               {

@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: nut-dashboard-compat
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: thepit.nut-dashboard-compat
+      rules:
+        - record: nut_battery_charge
+          expr: network_ups_tools_battery_charge{job=~"nut-exporter|nut-exporter-imac"}
+        - record: nut_load
+          expr: network_ups_tools_ups_load{job=~"nut-exporter|nut-exporter-imac"}
+        - record: nut_input_voltage_volts
+          expr: network_ups_tools_input_voltage{job=~"nut-exporter|nut-exporter-imac"}
+        - record: nut_input_voltage_nominal_volts
+          expr: network_ups_tools_input_voltage_nominal{job=~"nut-exporter|nut-exporter-imac"}
+        - record: nut_output_voltage_volts
+          expr: network_ups_tools_output_voltage{job=~"nut-exporter|nut-exporter-imac"}
+        - record: nut_battery_voltage_volts
+          expr: network_ups_tools_battery_voltage{job=~"nut-exporter|nut-exporter-imac"}
+        - record: nut_battery_voltage_nominal_volts
+          expr: network_ups_tools_battery_voltage_nominal{job=~"nut-exporter|nut-exporter-imac"}
+        - record: nut_status
+          expr: label_replace(network_ups_tools_ups_status{job=~"nut-exporter|nut-exporter-imac",flag=~"OL|OB|LB"}, "status", "$1", "flag", "(.*)")
+        - record: nut_ups_status
+          expr: label_replace(network_ups_tools_ups_status{job=~"nut-exporter|nut-exporter-imac",flag=~"OL|OB|LB"}, "status", "$1", "flag", "(.*)")
+        - record: nut_ups_info
+          expr: network_ups_tools_device_info{job=~"nut-exporter|nut-exporter-imac"}
