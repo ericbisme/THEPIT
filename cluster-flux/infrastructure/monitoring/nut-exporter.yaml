@@ -44,6 +44,6 @@ spec:
       params:
         ups:
           - cyberpower
-      relabelings:
+      metricRelabelings:
         - targetLabel: ups
           replacement: cyberpower
