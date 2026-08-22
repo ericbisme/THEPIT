@@ -72,7 +72,7 @@ spec:
           providers:
             - name: default
               orgId: 1
-              folder: UniFi Poller
+              folder: THEPIT
               type: file
               disableDeletion: false
               editable: false
