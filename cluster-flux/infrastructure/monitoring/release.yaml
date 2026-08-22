@@ -125,7 +125,7 @@ spec:
                 "templating": {"list": []},
                 "time": {"from": "now-24h", "to": "now"},
                 "title": "THEPIT UPS",
-                "uid": "thepit-ups",
+                "uid": "thepit-ups-dashboard",
                 "version": 1
               }
     prometheus:
