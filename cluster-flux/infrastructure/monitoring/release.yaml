@@ -271,7 +271,7 @@ spec:
                     "targets": [
                       {
                         "refId": "A",
-                        "expr": "last_over_time(nut_battery_charge{ups=~\"$ups\"}[$window])",
+                        "expr": "100 * last_over_time(nut_battery_charge{ups=~\"$ups\"}[$window])",
                         "legendFormat": "{{ups}}",
                         "range": true,
                         "instant": false
@@ -340,7 +340,7 @@ spec:
                     "targets": [
                       {
                         "refId": "A",
-                        "expr": "last_over_time(nut_load{ups=~\"$ups\"}[$window])",
+                        "expr": "100 * last_over_time(nut_load{ups=~\"$ups\"}[$window])",
                         "legendFormat": "{{ups}}",
                         "range": true,
                         "instant": false
