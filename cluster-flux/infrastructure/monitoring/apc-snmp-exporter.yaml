@@ -113,8 +113,6 @@ spec:
         - name: snmp-exporter
           image: quay.io/prometheus/snmp-exporter:v0.29.0
           args: ["--config.file=/etc/snmp-exporter/snmp.yml"]
-          ports:
-            - {name: http, containerPort: 9116}
           readinessProbe:
             httpGet: {path: /metrics, port: http}
           livenessProbe:
@@ -141,7 +139,7 @@ spec:
   selector:
     app.kubernetes.io/name: apc-snmp-exporter
   ports:
-    - {name: http, port: 9116, targetPort: http}
+    - {name: http, port: 9116, targetPort: 9116}
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
